@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS incident_patterns (
   first_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_confirmed_at TIMESTAMPTZ,
   source STRING NOT NULL DEFAULT 'seed',          -- 'seed' or 'promoted' (taught live)
-  VECTOR INDEX (embedding)
+  -- cosine metric declared via opclass at index creation; matched with the <=>
+  -- operator. Requires: SET CLUSTER SETTING feature.vector_index.enabled = true;
+  VECTOR INDEX (embedding vector_cosine_ops)
 );
 
 CREATE TABLE IF NOT EXISTS agent_decisions (
