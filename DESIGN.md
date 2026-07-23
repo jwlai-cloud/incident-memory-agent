@@ -104,7 +104,11 @@ This is where all four tools are simultaneously real:
    (Vector Indexing).
 3. The matched pattern's `remediation_channel = 'ccloud_skill'` and
    `skill_ref` names the relevant Agent Skill from the public
-   cockroachdb-skills repo (e.g. the live-SQL-activity triage skill).
+   `cockroachlabs/cockroachdb-skills` repo. For the write-hotspot
+   incident the skill is **`analyzing-range-distribution`** (hotspot /
+   range-distribution triage via `SHOW RANGES`); the live-activity
+   alternate is `triaging-live-sql-activity`. Store the bare slug as
+   `skill_ref`.
 4. The agent proposes: "run this skill via ccloud" — showing the
    exact command it intends, JSON output mode.
 5. Human approves → agent executes via **ccloud CLI**, captures the
