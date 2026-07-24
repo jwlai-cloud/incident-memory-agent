@@ -39,6 +39,11 @@ run against a live CockroachDB cluster or AWS Bedrock yet.
       `--calibrate` prints nearest-pattern distances + a suggested
       `MATCH_MAX_DISTANCE`; `--e2e` runs the counterfactual live. Offline `--check`
       green; live run pending the cluster.
+- [x] **`scripts/ccloud_wrapper.py`** (step 7) — beat-6 execution. Renders the
+      `analyzing-range-distribution` skill's read-only leaseholder-distribution SQL
+      (json_agg-wrapped) for the hot table, runs via `ccloud cluster sql` (or psycopg
+      fallback), captures JSON into the decision. Mutation guard + `--check` green;
+      `ccloud` subprocess path pending an installed/authed CLI + cluster.
 
 ## Next (priority order)
 
@@ -46,10 +51,9 @@ run against a live CockroachDB cluster or AWS Bedrock yet.
 2. **Run `smoke_test.py --calibrate`** → set `MATCH_MAX_DISTANCE` from real
    embeddings (seeds match, `novel_airflow` doesn't). Then `--e2e` for the
    counterfactual. This is now one command each; exercises all write paths.
-3. Step 7 — ccloud execution wrapper (beat-6 `ccloud_skill` proposals).
-4. Step 8 — MCP wiring (dev-side inspection satisfies the requirement per the
+3. Step 8 — MCP wiring (dev-side inspection satisfies the requirement per the
    session FAQ; runtime analyst chat is optional polish).
-5. Step 9 — minimal UI: feed, review queue, trust/runbook view, memory toggle,
+4. Step 9 — minimal UI: feed, review queue, trust/runbook view, memory toggle,
    guided beat controls, "Backed by CockroachDB" proof panel.
 
 ## Open questions
