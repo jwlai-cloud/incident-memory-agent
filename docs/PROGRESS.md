@@ -31,23 +31,25 @@ run against a live CockroachDB cluster or AWS Bedrock yet.
       autonomy grant, auto-revoke; in-SQL atomic updates.
 - [x] **`scripts/teach.py`** — escalation → promoted pattern; closes the
       teach→pollinate loop.
-- [x] Living docs (this pass): `ARCHITECTURE.md`, `PROGRESS.md`, `LEARNING.md`,
-      first ADRs; README rewrite; interactive tutorial artifact.
+- [x] Living docs: `ARCHITECTURE.md`, `PROGRESS.md`, `LEARNING.md`, ADR 0001-0003;
+      README rewrite; interactive tutorial artifact; `BLOG.md`.
+- [x] **`scripts/reset_demo.py`** — truncate + re-seed + re-inject for repeatable
+      runs; `--plan`; `BACKUP`/`RESTORE` video fallback documented in the docstring.
+- [x] **`scripts/smoke_test.py`** — end-to-end runner + threshold calibrator.
+      `--calibrate` prints nearest-pattern distances + a suggested
+      `MATCH_MAX_DISTANCE`; `--e2e` runs the counterfactual live. Offline `--check`
+      green; live run pending the cluster.
 
 ## Next (priority order)
 
 1. **Stand up CockroachDB Cloud + AWS creds** (in progress — user provisioning).
-2. **Smoke test end-to-end**: apply schema → seed → inject → decide off/on →
-   respond → teach → pollinate. Exercises all 6 untested write paths at once.
-3. **Calibrate `MATCH_MAX_DISTANCE`** against real Titan embeddings — seeds must
-   match, `novel_airflow` must not, then post-teach `pollinate_*` must match.
-   The demo's single riskiest number.
-4. `reset_demo.py` — truncate + re-seed + re-inject for repeatable runs; plus a
-   baseline `BACKUP`/`RESTORE` fallback for the video.
-5. Step 7 — ccloud execution wrapper (beat-6 proposals).
-6. Step 8 — MCP wiring (dev-side inspection satisfies the requirement per the
+2. **Run `smoke_test.py --calibrate`** → set `MATCH_MAX_DISTANCE` from real
+   embeddings (seeds match, `novel_airflow` doesn't). Then `--e2e` for the
+   counterfactual. This is now one command each; exercises all write paths.
+3. Step 7 — ccloud execution wrapper (beat-6 `ccloud_skill` proposals).
+4. Step 8 — MCP wiring (dev-side inspection satisfies the requirement per the
    session FAQ; runtime analyst chat is optional polish).
-7. Step 9 — minimal UI: feed, review queue, trust/runbook view, memory toggle,
+5. Step 9 — minimal UI: feed, review queue, trust/runbook view, memory toggle,
    guided beat controls, "Backed by CockroachDB" proof panel.
 
 ## Open questions
