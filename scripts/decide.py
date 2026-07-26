@@ -32,10 +32,16 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import embed  # noqa: E402  (signature / embed_signal / to_vector_literal)
 
-# The single riskiest number in the demo: seeds must match, novel_airflow must NOT
-# (so it escalates and you teach it), then the taught schema_drift pattern must
-# match pollinate_bq/dbt. CALIBRATE against real Titan embeddings once creds exist.
-MATCH_MAX_DISTANCE = float(os.environ.get("MATCH_MAX_DISTANCE", "0.30"))
+# Calibrated 2026-07-26 against real Titan v2 embeddings (smoke_test.py --calibrate).
+# Measured cosine distances:
+#   seed signals -> own pattern ............ 0.000  must match
+#   taught drift pattern -> pollinate_bq ... 0.283  must match (cross-system beat)
+#   taught drift pattern -> pollinate_dbt .. 0.321  must match (cross-system beat)
+#   drift signals -> nearest SEED .......... 0.593  must NOT match (teach moment)
+#   unrelated pairs ........................ 0.70-0.88
+# Safe window is (0.321, 0.593); 0.45 sits mid-window. Note 0.30 would have
+# silently broken the dbt pollination beat.
+MATCH_MAX_DISTANCE = float(os.environ.get("MATCH_MAX_DISTANCE", "0.45"))
 MATCH_TOP_K = int(os.environ.get("MATCH_TOP_K", "3"))
 REASONING_MODEL = os.environ.get("BEDROCK_REASONING_MODEL", "amazon.nova-micro-v1:0")
 

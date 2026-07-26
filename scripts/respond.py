@@ -89,7 +89,10 @@ def respond(cur, decision_id: str, response_type: str, modified_text: str | None
         cur.execute(
             f"UPDATE incident_patterns SET {col} = {col} + 1, confirm_count = confirm_count + 1, "
             "last_confirmed_at = now(), "
-            "applies_to = CASE WHEN %s = ANY(applies_to) THEN applies_to ELSE array_append(applies_to, %s) END "
+            # explicit ::STRING casts: CockroachDB cannot infer a placeholder's type
+            # inside ANY()/array_append (IndeterminateDatatype otherwise)
+            "applies_to = CASE WHEN %s::STRING = ANY(applies_to) THEN applies_to "
+            "ELSE array_append(applies_to, %s::STRING) END "
             "WHERE id = %s "
             "RETURNING risk_level, approved_unchanged_count, rejected_count, autonomy_granted, applies_to",
             (src, src, pid),

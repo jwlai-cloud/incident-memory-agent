@@ -34,6 +34,11 @@ from simulate_incidents import CAST  # noqa: E402
 DRIFT_BEATS = {"teach", "pollinate"}
 
 
+def _signal_of(inc) -> dict:
+    return {"source_system": inc.source_system, "signal_type": inc.signal_type,
+            "asset": inc.asset, "payload": inc.payload()}
+
+
 def _conn():
     import psycopg
     from psycopg.rows import dict_row
@@ -66,14 +71,34 @@ def calibrate() -> None:
 
     match_max = max((d for _, b, _, d in rows if b not in DRIFT_BEATS), default=None)
     nomatch_min = min((d for _, b, _, d in rows if b in DRIFT_BEATS), default=None)
+
+    # The pre-teach view above is NOT sufficient. After the teach moment the drift
+    # pattern must ALSO match its cross-system cousins - and that distance is the
+    # real lower bound on the threshold. Ignoring it suggests a value that silently
+    # kills the pollination beat.
+    teach = next(i for i in CAST if i.beat == "teach")
+    tvec = embed.embed_signal(_signal_of(teach))
+    pollination = {}
+    for inc in (i for i in CAST if i.beat == "pollinate"):
+        v = embed.embed_signal(_signal_of(inc))
+        pollination[inc.demo_id] = 1.0 - sum(a * b for a, b in zip(tvec, v))
+
+    print("\n  post-teach pollination (taught pattern -> cousin, MUST match):")
+    for did, d in sorted(pollination.items(), key=lambda kv: kv[1]):
+        print(f"    {did:<16} {d:6.3f}")
+
+    lower = max([match_max or 0.0, *pollination.values()])  # everything that must match
+    upper = nomatch_min                                       # first thing that must not
     print()
-    if match_max is not None and nomatch_min is not None and match_max < nomatch_min:
-        suggested = round((match_max + nomatch_min) / 2, 3)
-        print(f"  clean separation: seeds match <= {match_max:.3f}, drift sits >= {nomatch_min:.3f}")
+    if upper is not None and lower < upper:
+        suggested = round((lower + upper) / 2, 3)
+        print(f"  safe window: must-match <= {lower:.3f}, must-NOT-match >= {upper:.3f}")
         print(f"  SUGGESTED  MATCH_MAX_DISTANCE = {suggested}   "
               f"(current default {decide.MATCH_MAX_DISTANCE})")
+        if not (lower < decide.MATCH_MAX_DISTANCE < upper):
+            print(f"  *** current default {decide.MATCH_MAX_DISTANCE} is OUTSIDE the safe window ***")
     else:
-        print(f"  WARNING: no clean separation (match_max={match_max}, nomatch_min={nomatch_min}). "
+        print(f"  WARNING: no clean separation (must-match {lower}, must-not {upper}). "
               "Signatures need tuning before the threshold will work.")
 
 
