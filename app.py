@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, jsonify, render_template, request
 
@@ -111,8 +112,21 @@ def api_decide():
         else:
             cur.execute("SELECT id, source_system, signal_type, asset, payload FROM monitored_signals "
                         "ORDER BY observed_at")
-        results = [decide.decide(cur, s, memory) for s in cur.fetchall()]
-        conn.commit()
+        signals = cur.fetchall()
+
+    # Each decision does an embedding call plus (on a match) a reasoning call, so
+    # sequentially this took ~13s for 8 signals — long enough to read as a sluggish
+    # agent on camera and to threaten a serverless request timeout. One connection
+    # per signal lets them run concurrently; wall time becomes the slowest single
+    # decision. Each thread owns its connection, so no cursor is shared.
+    def one(signal):
+        with db() as c, c.cursor() as cur2:
+            out = decide.decide(cur2, signal, memory)
+            c.commit()
+            return out
+
+    with ThreadPoolExecutor(max_workers=min(8, len(signals) or 1)) as pool:
+        results = list(pool.map(one, signals))
     return jsonify(ok=True, decided=len(results))
 
 
