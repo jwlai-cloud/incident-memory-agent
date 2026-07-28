@@ -156,13 +156,15 @@
     <h1>Building an incident-memory engine <span class="thin">that survives the incident</span></h1>
     <p class="lede">An on-call triage agent whose memory of past incidents — and of how much the human trusts its
       judgment — lives in CockroachDB. A lesson taught once, in one system, is instantly reusable in the next.</p>
-    <p class="sub">This is the engineering walk-through: six small Python programs, one database, two AWS calls, and
-      three ideas that make it more than “an agent that remembers.” Every widget below runs the real decision logic.</p>
+    <p class="sub">This is the engineering walk-through: nine small Python programs, one database, two AWS calls, and
+      three ideas that make it more than “an agent that remembers.” Every widget below runs the real decision logic —
+      and every number on this page was measured against a live CockroachDB cluster, not estimated.</p>
     <div class="metabar">
       <span class="chip"><b>store</b> &nbsp;CockroachDB · VECTOR(512) · trust ledger</span>
       <span class="chip"><b>embed</b> &nbsp;Bedrock Titan v2</span>
       <span class="chip"><b>reason</b> &nbsp;Bedrock Converse</span>
       <span class="chip"><b>run</b> &nbsp;AWS Lambda</span>
+      <span class="chip"><b>measured</b> &nbsp;100% → 38% escalation, live</span>
     </div>
   </div>
 </header>
@@ -177,7 +179,8 @@
       <li><a href="#decide"><span class="n">04</span> Decide · try it</a></li>
       <li><a href="#trust"><span class="n">05</span> Trust ledger · try it</a></li>
       <li><a href="#teach"><span class="n">06</span> Teach &amp; pollinate</a></li>
-      <li><a href="#stack"><span class="n">07</span> Stack &amp; sources</a></li>
+      <li><a href="#reality"><span class="n">07</span> What the cluster taught</a></li>
+      <li><a href="#stack"><span class="n">08</span> Stack &amp; sources</a></li>
     </ol>
   </nav>
 
@@ -307,7 +310,7 @@ flowchart TB
       <h3>The rule matrix</h3>
       <pre class="code"><span class="c">def classify(distance, risk, autonomy_granted, revoked_at, memory_on):</span>
     if not memory_on:                         <span class="c"># counterfactual</span>  → escalate
-    if distance is None or distance &gt; MAX:    <span class="c"># no precedent</span>  → escalate
+    if distance is None or distance &gt; 0.45:   <span class="c"># no precedent</span>  → escalate
     if risk == 'high':                        <span class="c"># rule 1</span>       → escalate + cite precedent
     if autonomy_granted and not revoked_at:                              → auto_resolve
     else:                                                                → propose</pre>
@@ -356,8 +359,63 @@ flowchart TB
         argument for embeddings over rule matchers, running against a live vector index.</p>
     </section>
 
+
+    <section id="reality">
+      <h2><span class="n">07</span> What only the real cluster could tell us</h2>
+      <p>Everything above was verified offline before a cluster existed — deterministic self-checks, no network.
+        That caught a lot. It did not catch these four, and three of them would have failed silently on camera.</p>
+
+      <h3>The calibrator suggested a number that breaks the demo</h3>
+      <p>A pattern matches when cosine distance ≤ a threshold. We shipped <code>0.30</code> as a placeholder and wrote
+        a calibrator to fix it against real embeddings. It measured seeds at <code>0.000</code> and un-taught drift at
+        <code>0.593</code>, and confidently suggested <code>0.297</code>.</p>
+      <p>It was measuring the wrong constraint. The distance that actually matters is
+        <em>taught pattern → its cross-system cousin</em>, and <code>pollinate_dbt</code> sits at <code>0.321</code> —
+        above both the suggestion and our guess. The dbt half of the pollination beat would have shown
+        “no precedent” for an incident the agent had been taught thirty seconds earlier.</p>
+      <pre class="code"><span class="c"># the real safe window, measured</span>
+seed → own pattern .................. 0.000   must match
+taught drift → pollinate_bq ......... 0.283   must match
+taught drift → pollinate_dbt ........ <span class="k">0.321</span>   must match   ← the binding constraint
+drift → nearest seed ................ 0.593   must NOT match
+unrelated .......................... 0.70-0.88
+
+window = (0.321, 0.593)  →  <span class="k">MATCH_MAX_DISTANCE = 0.45</span></pre>
+      <p class="muted">A calibrator that measures half the constraints is worse than none — it produces a confident
+        wrong number. The fix was to make it measure post-teach distances too, and warn when the current default falls
+        outside the window.</p>
+
+      <h3>The self-referential beat was fiction until it wasn’t</h3>
+      <p>Beat 6 proposes running CockroachDB’s own <code>analyzing-range-distribution</code> Agent Skill. The simulated
+        payload described a hotspot on <code>orders_db.order_events</code> — fine for a payload that’s only
+        <em>displayed</em>, fatal for one whose SQL actually <em>executes</em>. It died with
+        <code>InvalidCatalogName</code>.</p>
+      <p>Pointing it at <code>agent_decisions</code> — the agent’s own append-only decision log, whose
+        <code>decided_at</code> index genuinely concentrates writes on the newest range — made the beat both work and
+        mean what DESIGN.md claimed: the agent using CockroachDB’s published expertise to keep its own memory healthy.
+        Simulated in its metrics, real in its subject.</p>
+
+      <h3>Two platform facts the docs don’t lead with</h3>
+      <ul class="tight">
+        <li>The skill’s documented query groups by <code>lease_holder</code>, which needs
+          <code>SHOW RANGES … WITH DETAILS</code>. CockroachDB Cloud <b>Basic rejects it</b> — serverless tenants get no
+          node-level range internals (<code>rpc error … connection reset</code>). The tier-compatible per-index range
+          distribution diagnoses the same hotspot.</li>
+        <li>CockroachDB can’t infer a placeholder’s type inside <code>ANY()</code> / <code>array_append</code>;
+          it raises <code>IndeterminateDatatype</code> until you write <code>%s::STRING</code>. This is the line that
+          grows <code>applies_to</code> — the cross-system payoff — so it failed exactly once, loudly, on first contact.</li>
+      </ul>
+
+      <h3>And one the design tools caught before a human would have</h3>
+      <p>The console’s first palette put the brand amber and the auto-resolve green at <b>ΔE 4.4 under protanopia</b> —
+        indistinguishable to a colorblind viewer. It looked fine to us. A validator script said otherwise, and the
+        shipped trio is <code>#E5674F / #5B93F0 / #2FA98C</code>, which passes every check in both themes.</p>
+      <p class="muted">The pattern across all four: offline tests prove the logic you thought to write down.
+        Real infrastructure tells you which constraints you never wrote down.</p>
+    </section>
+
     <section id="stack">
-      <h2><span class="n">07</span> Stack &amp; primary sources</h2>
+      <h2><span class="n">08</span> Stack &amp; primary sources</h2>
       <p>Everything was verified against current vendor docs, not training-data memory — a hackathon’s featured SDK is
         usually newer than any model’s cutoff.</p>
       <div class="panel">

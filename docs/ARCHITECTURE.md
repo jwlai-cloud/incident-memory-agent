@@ -99,9 +99,34 @@ serializable default makes concurrent responses safe.
   vectors + ledger. Vector index requires
   `SET CLUSTER SETTING feature.vector_index.enabled = true`.
 
-## Deployment topology (demo)
+## Verified behaviour (live cluster, 2026-07-28)
 
-Single-node/Basic CockroachDB (AWS region) · Lambda for `decide` · the other
-scripts run as CLI tools / endpoints · a thin UI (planned) polls the tables and
-drives the demo beats. Production trigger would be CockroachDB CDC on
-`monitored_signals` inserts → Lambda.
+Measured on CockroachDB Cloud Basic v26.2.1 (AWS us-east-1) with Bedrock Titan v2:
+
+| Claim | Observed |
+|---|---|
+| Memoryless counterfactual | escalation **100% → 38%** over the same 8 signals |
+| Cross-system pollination | taught pattern matches `pollinate_bq` at 0.72 and `pollinate_dbt` at 0.68 similarity |
+| `applies_to` growth | `[airflow]` → `[airflow, bigquery]` → `[airflow, bigquery, dbt]` |
+| Rule 1 (high-risk) | drift matches cite the precedent yet still escalate |
+| Trust ledger | 5th unchanged approval fires the ask; grant sticks; one rejection revokes |
+| Beat 6 | skill diagnostic returns live range ids / replica counts for `agent_decisions` |
+
+Match threshold `MATCH_MAX_DISTANCE = 0.45`, calibrated — see ADR 0004.
+
+## Platform constraints (Cloud Basic)
+
+- `SHOW RANGES … WITH DETAILS` is rejected (no node-level internals for serverless
+  tenants), so beat 6 uses per-index range distribution instead of leaseholder
+  counts — see ADR 0005.
+- Placeholders inside `ANY()` / `array_append` need an explicit `::STRING` cast.
+- The vector index requires `SET CLUSTER SETTING feature.vector_index.enabled = true`,
+  which Basic does permit.
+
+## Deployment topology
+
+Demo: CockroachDB Cloud Basic (AWS us-east-1) · Flask console on localhost ·
+scripts as CLI tools. `decide.handler` is Lambda-shaped and deploys unchanged.
+
+Production shape: CockroachDB CDC on `monitored_signals` inserts → Lambda
+(`decide.handler`) → review queue, rather than the demo's explicit invoke.
