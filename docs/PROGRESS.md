@@ -2,11 +2,12 @@
 
 *Running log. Update at the end of every session, not just milestones.*
 
-## Status: core complete, not yet run against real infra
+## Status: end-to-end working against real infrastructure
 
-The full memory + decision core is code-complete and offline-verified (every
-script has a `--check` self-check that passes with no network/DB). Nothing has
-run against a live CockroachDB cluster or AWS Bedrock yet.
+Every beat runs live against a CockroachDB Cloud Basic cluster (v26.2.1,
+us-east-1) with real Bedrock Titan embeddings and Nova reasoning. The demo
+console at `app.py` drives all seven beats; all nine scripts keep passing their
+offline `--check`.
 
 ## Done
 
@@ -45,27 +46,49 @@ run against a live CockroachDB cluster or AWS Bedrock yet.
       fallback), captures JSON into the decision. Mutation guard + `--check` green;
       `ccloud` subprocess path pending an installed/authed CLI + cluster.
 
+- [x] **Live infrastructure** — CockroachDB Cloud Basic (AWS us-east-1, v26.2.1),
+      `feature.vector_index.enabled=true`, schema + C-SPANN cosine index applied.
+      Bedrock verified with real Titan and Nova calls; $200 credits, ~$0 used.
+- [x] **Threshold calibrated** — `MATCH_MAX_DISTANCE = 0.45` from measured
+      distances. The pre-teach-only calibration suggested 0.297, which would have
+      silently broken the dbt cross-system match (0.321). See ADR 0004.
+- [x] **Step 9 — demo console** (`app.py` + `templates/index.html`): guided
+      7-beat rail, incident timeline, trust/runbook panel, live-SQL proof panel.
+      Driven end-to-end with Playwright, zero console errors.
+
 ## Next (priority order)
 
-1. **Stand up CockroachDB Cloud + AWS creds** (in progress — user provisioning).
-2. **Run `smoke_test.py --calibrate`** → set `MATCH_MAX_DISTANCE` from real
-   embeddings (seeds match, `novel_airflow` doesn't). Then `--e2e` for the
-   counterfactual. This is now one command each; exercises all write paths.
-3. Step 8 — MCP wiring (dev-side inspection satisfies the requirement per the
-   session FAQ; runtime analyst chat is optional polish).
-4. Step 9 — minimal UI: feed, review queue, trust/runbook view, memory toggle,
-   guided beat controls, "Backed by CockroachDB" proof panel.
+1. **Deploy the console** to a public URL (the submission's "working demo URL").
+   Flask dev server is local-only; needs a WSGI host + the connection string as a
+   platform secret.
+2. **Step 8 — MCP wiring.** The cluster's Connect dialog gives a managed MCP
+   endpoint (`https://cockroachlabs.cloud/mcp`, header `mcp-cluster-id`).
+   Dev-side use satisfies the requirement per the session FAQ.
+3. **Record the demo video** (<3 min) following `DEMO_SCRIPT.md`; the console's
+   beat rail is the shot list.
+4. Submission writeup + regenerate `architecture.svg` for this design.
 
 ## Open questions
 
-- `MATCH_MAX_DISTANCE` value — deferred until real embeddings exist (item 3).
-- Reasoning model — default Nova Micro; confirm Bedrock access/cost on the real
-  account (FAQ: Bedrock Claude may not be free; DeepSeek/Nova are cheap).
-- `incident-memory-agent.zip` is a tracked repo-in-repo — probably drop before
-  submission (not for a public repo).
+- **Hosting.** Where the console gets deployed, and how `COCKROACH_URL` is
+  injected as a secret there.
+- **Cluster longevity.** Basic's free tier recurs monthly (the $400 trial credit
+  expires 2026-08-24), so the demo URL should survive judging — but confirm the
+  cluster isn't paused for inactivity before submitting.
+- `incident-memory-agent.zip` is a tracked repo-in-repo — drop before submission.
+
+## Constraints discovered on the real cluster
+
+- `SHOW RANGES ... WITH DETAILS` is **rejected on Cloud Basic** (serverless
+  tenants get no node-level range internals): `rpc error ... connection reset`.
+  The beat-6 diagnostic uses the tier-compatible per-index range distribution.
+- CockroachDB cannot infer a placeholder's type inside `ANY()` / `array_append`
+  — needs an explicit `::STRING` cast (`IndeterminateDatatype` otherwise).
 
 ## Decisions on record (see `docs/adr/`)
 
 - 0001 — CockroachDB as the single memory + vector + ledger store.
 - 0002 — Deterministic decision, LLM for prose only.
 - 0003 — dbt schema-drift manifests as a model build error, not a test failure.
+- 0004 — Match threshold calibrated to 0.45 against real embeddings.
+- 0005 — Beat 6 targets the agent's own memory tables.
