@@ -22,7 +22,35 @@ import respond  # noqa: E402
 import reset_demo  # noqa: E402
 import teach  # noqa: E402
 
-app = Flask(__name__)
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+# explicit absolute template path: on Vercel this module is imported from api/index.py,
+# so Flask's default module-relative lookup is not something to rely on.
+app = Flask(__name__, template_folder=os.path.join(_ROOT, "templates"))
+
+# Best-effort abuse guard for the public demo URL. Judges must be able to click the
+# beats without credentials, so this is a rate limit rather than auth. It is
+# per-instance memory, so on serverless it bounds a single warm instance, not the
+# fleet — the durable backstop is an AWS budget cap on the Bedrock key. Costs are
+# small by construction (Titan + Nova Micro, embeddings lru_cached), so this exists
+# to stop state thrash spoiling the next visitor's run more than to stop spend.
+_HITS: dict[str, list[float]] = {}
+WRITE_LIMIT = int(os.environ.get("WRITE_LIMIT_PER_MIN", "20"))
+
+
+@app.before_request
+def _rate_limit():
+    if request.method != "POST":
+        return None
+    import time
+    ip = (request.headers.get("x-forwarded-for", "") or request.remote_addr or "?").split(",")[0].strip()
+    now = time.time()
+    recent = [t for t in _HITS.get(ip, []) if now - t < 60]
+    if len(recent) >= WRITE_LIMIT:
+        return jsonify(ok=False, error=f"Rate limit: {WRITE_LIMIT} actions per minute. "
+                                      "Wait a moment and try again."), 429
+    recent.append(now)
+    _HITS[ip] = recent
+    return None
 
 # The taught pattern's content is the human's worked example. Pre-filled so the
 # demo is rehearsable, editable in the UI so the teach moment stays honest.

@@ -13,3 +13,4 @@ __pycache__/
 
 # local run artifacts
 *.log
+.vercel
