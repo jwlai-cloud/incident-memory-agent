@@ -177,17 +177,21 @@ CAST: list[Incident] = [
         baseline={"success_rate_30d": 1.0, "first_failure": True},
     ),
     # --- CockroachDB-native beat: hot range on the memory cluster itself ---
+    # Deliberately targets OUR OWN tables: agent_decisions is an append-only audit
+    # log with a decided_at index, so time-ordered inserts really do concentrate on
+    # the max range. That makes beat 6 self-referential AND lets the Agent Skill's
+    # diagnostic run for real against this cluster instead of a fictional table.
     Incident(
         "crdb_hot_range", "crdb", 300, "cockroachdb", "hot_range",
-        "orders_db.order_events:r4213",
+        "defaultdb.agent_decisions:r11559950",
         artifact={
-            "range_id": 4213, "node_id": 3, "store_id": 3,
+            "range_id": 11559950, "node_id": 102, "store_id": 102,
             "qps": 18432.7, "writes_per_second": 15200.4, "reads_per_second": 3231.9,
             "write_bytes_per_second": 41943040.0, "read_bytes_per_second": 5242880.0,
             "cpu_time_per_second": 812000000.0,  # ns/s ~= 0.81 CPU-sec/sec
-            "leaseholder_node_id": 3, "replica_node_ids": [3, 1, 5],
-            "databases": ["orders_db"], "tables": ["order_events"],
-            "indexes": ["order_events_pkey"],
+            "leaseholder_node_id": 102, "replica_node_ids": [102, 166, 172],
+            "databases": ["defaultdb"], "tables": ["agent_decisions"],
+            "indexes": ["agent_decisions_decided_at_idx"],
         },
         baseline={
             "median_qps_cluster": 451.0, "ratio": 40.9,

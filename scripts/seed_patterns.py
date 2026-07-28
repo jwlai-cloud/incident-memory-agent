@@ -115,14 +115,15 @@ PATTERNS: list[SeedPattern] = [
         failure_class="hot_range_contention",
         applies_to=["cockroachdb"],
         root_cause=(
-            "order_events uses a monotonically increasing timestamp/serial primary key, so every "
-            "insert targets the max range - a single-range write hotspot with no spread across "
-            "replicas."
+            "agent_decisions is an append-only audit log and its decided_at index is ordered by "
+            "time, so every insert lands at the max end of that index - a single-range write "
+            "hotspot with no spread across replicas. The agent's own memory layer is the victim."
         ),
         resolution=(
             "Triage live via the CockroachDB 'analyzing-range-distribution' Agent Skill through "
-            "ccloud (read-only SHOW RANGES) to confirm the range and leaseholder. Fix: hash-shard "
-            "the index (USING HASH) or move to a UUID/composite primary key to distribute writes."
+            "ccloud (read-only SHOW RANGES) to confirm range distribution across the table's "
+            "indexes. Fix: hash-shard the time index (USING HASH WITH BUCKET_COUNT) so writes "
+            "spread across ranges instead of concentrating on the newest one."
         ),
         remediation_channel="ccloud_skill",
         skill_ref="analyzing-range-distribution",   # cockroachlabs/cockroachdb-skills

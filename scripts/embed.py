@@ -25,6 +25,7 @@ import argparse
 import json
 import os
 import re
+from functools import lru_cache
 
 MODEL_ID = "amazon.titan-embed-text-v2:0"
 EMBED_DIMS = 512
@@ -173,8 +174,13 @@ def _bedrock():
     return _client
 
 
+@lru_cache(maxsize=256)
 def embed(text: str) -> list[float]:
-    """Titan v2 embedding (512 unit-normalized floats) for a signature string."""
+    """Titan v2 embedding (512 unit-normalized floats) for a signature string.
+
+    Cached: signatures are deterministic, so the UI re-deciding the same cast
+    repeatedly costs one Bedrock call per distinct signature, not per click.
+    """
     resp = _bedrock().invoke_model(
         body=json.dumps({"inputText": text, "dimensions": EMBED_DIMS, "normalize": True}),
         modelId=MODEL_ID, accept="application/json", contentType="application/json")

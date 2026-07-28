@@ -41,16 +41,26 @@ def assert_read_only(sql: str) -> None:
 
 
 def render_command(artifact: dict) -> tuple[str, str]:
-    """Skill Query 3 — leaseholder distribution / hotspot detection — for the hot table."""
+    """The analyzing-range-distribution skill's diagnostic, for the hot table.
+
+    The skill's documented Query 3 groups by `lease_holder`, which only exists
+    under `SHOW RANGES ... WITH DETAILS`. On CockroachDB Cloud Basic (serverless)
+    DETAILS is rejected — tenants don't get node-level range internals ("rpc error
+    ... connection reset"). So we run the tier-compatible half of the same
+    analysis: per-index range distribution plus the replica set and zone spread,
+    which is what actually diagnoses a sequential-key hotspot.
+    """
     db = (artifact.get("databases") or ["defaultdb"])[0]
     tbl = (artifact.get("tables") or ["unknown"])[0]
     target = f"{db}.public.{tbl}"
     sql = (
         "SELECT json_agg(t) FROM ("
-        "SELECT lease_holder, count(*) AS leaseholder_count, "
-        "round(count(*)*100.0/sum(count(*)) over (),2) AS pct "
-        f"FROM [SHOW RANGES FROM TABLE {target}] "
-        "GROUP BY lease_holder ORDER BY leaseholder_count DESC"
+        "SELECT r.index_name, count(*) AS ranges, "
+        "min(r.range_id) AS first_range, max(r.range_id) AS last_range, "
+        "max(array_length(r.replicas,1)) AS replica_count "
+        f"FROM [SHOW RANGES FROM DATABASE {db} WITH INDEXES] AS r "
+        f"WHERE r.table_name = '{tbl}' "
+        "GROUP BY r.index_name ORDER BY ranges DESC LIMIT 20"
         ") t;"
     )
     return sql, target
@@ -132,10 +142,14 @@ def handler(event: dict, context=None) -> dict:
 
 
 def self_check() -> None:
-    art = {"databases": ["orders_db"], "tables": ["order_events"], "indexes": ["order_events_pkey"]}
+    # beat 6 targets the agent's own memory tables, so the skill's diagnostic runs
+    # for real against this cluster (see simulate_incidents crdb_hot_range).
+    art = {"databases": ["defaultdb"], "tables": ["agent_decisions"],
+           "indexes": ["agent_decisions_decided_at_idx"]}
     sql, target = render_command(art)
-    assert target == "orders_db.public.order_events", target
-    assert "json_agg" in sql and "SHOW RANGES FROM TABLE" in sql and "order_events" in sql
+    assert target == "defaultdb.public.agent_decisions", target
+    assert "json_agg" in sql and "SHOW RANGES FROM DATABASE" in sql and "agent_decisions" in sql
+    assert "WITH DETAILS" not in sql, "DETAILS is rejected on Cloud Basic (serverless) clusters"
     assert_read_only(sql)  # the real diagnostic must pass
 
     # the mutation guard must block a write the skill's "remediation" section might suggest
