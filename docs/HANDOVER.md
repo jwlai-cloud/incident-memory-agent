@@ -26,8 +26,9 @@ direction entirely.
      try_number, duration vs. historical mean)
    - BigQuery: real job-error JSON structure (reason, location,
      bytesProcessed anomaly vs. baseline)
-   - dbt: real test-result artifact shape (test name, status,
-     failures count, relation)
+   - dbt: real run_results.json result shape (unique_id, status,
+     failures, relation_name) — seed_3 a failed data test, the
+     schema-drift pollination a model build error (status='error')
    - CockroachDB: hot-range-style signal (range id, QPS skew,
      replica distribution)
    Explicit injection-order control; no randomness in the demo path.

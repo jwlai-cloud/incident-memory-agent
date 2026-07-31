@@ -7,8 +7,8 @@
 | `seed_1..3` | mixed | Known incident types pre-seeded into memory | Beat 2 matches |
 | `novel_airflow` | Airflow | Schema-drift task failure — no precedent | The teach moment |
 | `pollinate_bq` | BigQuery | Same failure class, different system | Cross-system money shot |
-| `pollinate_dbt` | dbt | Same class again, third system | Optional reinforcement |
-| `crdb_hot_range` | CockroachDB | Hot-range/contention on the memory cluster itself | Beat 6 — all four tools |
+| `pollinate_dbt` | dbt | Same class again, third system — a **model build error** (`run_results.json` `status:"error"`), not a test failure; see ADR 0003 | Optional reinforcement |
+| `crdb_hot_range` | CockroachDB | Hot-range/contention on the agent's **own** `agent_decisions` table; see ADR 0005 | Beat 6 — all four tools |
 | `trust_repeat` | Airflow | A repeat of a seed pattern, N-th time | Trust-ledger ask |
 
 Timing of every injection is explicitly controlled in `replay.py` —

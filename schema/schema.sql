@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS incident_patterns (
   first_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_confirmed_at TIMESTAMPTZ,
   source STRING NOT NULL DEFAULT 'seed',          -- 'seed' or 'promoted' (taught live)
-  VECTOR INDEX (embedding)
+  -- cosine metric declared via opclass at index creation; matched with the <=>
+  -- operator. Requires: SET CLUSTER SETTING feature.vector_index.enabled = true;
+  VECTOR INDEX (embedding vector_cosine_ops)
 );
 
 CREATE TABLE IF NOT EXISTS agent_decisions (
@@ -83,3 +85,14 @@ SELECT
   p.last_confirmed_at
 FROM incident_patterns AS p
 ORDER BY p.confirm_count DESC;
+
+-- Durable usage counters for the public demo URL. An in-process rate limit is
+-- useless on serverless (each instance has its own memory, and cold starts reset
+-- it), so the ceiling on model-invoking actions lives in the database — the one
+-- piece of shared, transactional state the deployment already has.
+CREATE TABLE IF NOT EXISTS usage_counters (
+  day DATE NOT NULL,
+  bucket STRING NOT NULL,      -- 'global' or a client IP
+  n INT8 NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, bucket)
+);

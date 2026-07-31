@@ -1,0 +1,633 @@
+<style>
+  :root {
+    --ink: #0f1217; --panel: #161b22; --panel-2: #1b222b; --line: #262d37;
+    --text: #c6ceda; --dim: #838e9f; --gold: #e0b25a; --gold-soft: #6b5a33;
+    --escalate: #e5674f; --propose: #5b93f0; --auto: #46b95a;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --maxw: 1180px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ink: #f4f6f8; --panel: #ffffff; --panel-2: #eef2f6; --line: #e0e5ec;
+      --text: #2a3038; --dim: #6b7480; --gold: #a5761c; --gold-soft: #e7d7b0;
+      --escalate: #cf4530; --propose: #2f6fdd; --auto: #2f9440;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #0f1217; --panel: #161b22; --panel-2: #1b222b; --line: #262d37;
+    --text: #c6ceda; --dim: #838e9f; --gold: #e0b25a; --gold-soft: #6b5a33;
+    --escalate: #e5674f; --propose: #5b93f0; --auto: #46b95a;
+  }
+  :root[data-theme="light"] {
+    --ink: #f4f6f8; --panel: #ffffff; --panel-2: #eef2f6; --line: #e0e5ec;
+    --text: #2a3038; --dim: #6b7480; --gold: #a5761c; --gold-soft: #e7d7b0;
+    --escalate: #cf4530; --propose: #2f6fdd; --auto: #2f9440;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ink); color: var(--text); font-family: var(--sans);
+    line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  a { color: var(--gold); text-decoration: none; border-bottom: 1px solid transparent; }
+  a:hover { border-bottom-color: var(--gold); }
+  a:focus-visible, button:focus-visible, .pill:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  code, kbd { font-family: var(--mono); font-size: 0.88em; }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .layout { display: grid; grid-template-columns: 232px minmax(0,1fr); gap: 48px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; gap: 0; } nav.toc { display: none; } }
+
+  /* hero */
+  header.hero { border-bottom: 1px solid var(--line); background:
+    radial-gradient(1200px 300px at 80% -10%, color-mix(in srgb, var(--gold) 12%, transparent), transparent); }
+  .hero .wrap { padding-top: 64px; padding-bottom: 52px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--gold); margin: 0 0 18px; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(30px, 5vw, 46px); line-height: 1.1;
+    letter-spacing: -0.01em; text-wrap: balance; margin: 0 0 16px; color: var(--text); }
+  h1 .thin { color: var(--dim); }
+  .lede { font-size: 19px; max-width: 60ch; color: var(--text); margin: 0 0 8px; }
+  .sub { color: var(--dim); max-width: 62ch; }
+  .metabar { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; font-family: var(--mono); font-size: 12.5px; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; color: var(--dim); background: var(--panel); }
+  .chip b { color: var(--gold); font-weight: 600; }
+
+  /* nav */
+  nav.toc { position: sticky; top: 20px; padding-top: 56px; font-family: var(--mono); font-size: 13px; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  nav.toc a { display: flex; gap: 10px; color: var(--dim); padding: 5px 10px; border-radius: 6px; border: none; }
+  nav.toc a .n { color: var(--gold-soft); min-width: 20px; }
+  nav.toc a:hover { background: var(--panel); color: var(--text); }
+  nav.toc a.active { background: var(--panel); color: var(--gold); }
+  nav.toc a.active .n { color: var(--gold); }
+
+  main { padding: 40px 0 96px; min-width: 0; }
+  section { padding: 26px 0; border-top: 1px solid var(--line); scroll-margin-top: 20px; }
+  section:first-of-type { border-top: none; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 25px; letter-spacing: -0.01em; text-wrap: balance;
+    margin: 6px 0 4px; display: flex; align-items: baseline; gap: 12px; }
+  h2 .n { color: var(--gold); font-size: 15px; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 16px; color: var(--gold); margin: 26px 0 6px; }
+  p { max-width: 68ch; }
+  .muted { color: var(--dim); }
+  ul.tight { max-width: 68ch; padding-left: 20px; }
+  ul.tight li { margin: 4px 0; }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin: 18px 0; }
+  pre.code { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--gold);
+    border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px;
+    line-height: 1.5; color: var(--text); }
+  pre.code .c { color: var(--dim); }
+  pre.code .k { color: var(--gold); }
+
+  .sources { font-family: var(--mono); font-size: 12.5px; display: flex; flex-direction: column; gap: 4px;
+    border-top: 1px dashed var(--line); margin-top: 16px; padding-top: 12px; }
+  .sources .lbl { color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; font-size: 11px; }
+
+  pre.mermaid { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px;
+    overflow-x: auto; text-align: center; }
+
+  /* interactive */
+  .console { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 20px 0; }
+  .console .controls { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding: 14px 18px;
+    border-bottom: 1px solid var(--line); background: var(--panel-2); }
+  .toggle { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 12.5px; color: var(--dim); }
+  .switch { position: relative; width: 44px; height: 24px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--ink); cursor: pointer; transition: background .18s; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--dim); transition: transform .18s, background .18s; }
+  .switch[aria-checked="true"] { background: color-mix(in srgb, var(--gold) 30%, var(--ink)); }
+  .switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--gold); }
+  .stat { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--dim); text-align: right; }
+  .stat b { font-size: 22px; color: var(--gold); display: block; font-variant-numeric: tabular-nums; }
+
+  table.cast { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.cast th { text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--dim); padding: 10px 14px; border-bottom: 1px solid var(--line); font-weight: 500; }
+  table.cast td { padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.cast tr:last-child td { border-bottom: none; }
+  table.cast tbody tr { cursor: pointer; }
+  table.cast tbody tr:hover { background: var(--panel-2); }
+  table.cast tr.sel { background: color-mix(in srgb, var(--gold) 9%, transparent); }
+  .id { font-family: var(--mono); color: var(--text); }
+  .sys { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .action { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+    display: inline-block; letter-spacing: 0.02em; }
+  .a-escalate { color: var(--escalate); background: color-mix(in srgb, var(--escalate) 15%, transparent); }
+  .a-propose  { color: var(--propose);  background: color-mix(in srgb, var(--propose) 15%, transparent); }
+  .a-auto     { color: var(--auto);     background: color-mix(in srgb, var(--auto) 16%, transparent); }
+  .tag { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+  .detail { padding: 16px 18px; border-top: 1px solid var(--line); background: var(--panel-2); font-size: 13px; }
+  .detail .dlbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--dim); margin: 12px 0 4px; }
+  .detail .dlbl:first-child { margin-top: 0; }
+  .detail pre { font-family: var(--mono); font-size: 12px; margin: 0; white-space: pre-wrap; word-break: break-word; color: var(--text); }
+  .detail .sig { color: var(--gold); }
+
+  /* trust sim */
+  .trust { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin: 20px 0; }
+  .ledger { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 6px 0 16px; }
+  .cell { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; text-align: center; }
+  .cell b { font-family: var(--mono); font-size: 26px; display: block; color: var(--text); font-variant-numeric: tabular-nums; }
+  .cell span { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; }
+  button.act { font-family: var(--mono); font-size: 13px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text); transition: border-color .15s, background .15s; }
+  button.act:hover { border-color: var(--gold); }
+  button.act:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.grant { border-color: var(--gold); color: var(--gold); }
+  .status { font-family: var(--mono); font-size: 13px; margin-top: 16px; padding: 12px 14px; border-radius: 8px;
+    border: 1px dashed var(--line); color: var(--dim); min-height: 20px; }
+  .status.ask { border-color: var(--gold); color: var(--gold); border-style: solid;
+    background: color-mix(in srgb, var(--gold) 8%, transparent); }
+  .status.auto { border-color: var(--auto); color: var(--auto); border-style: solid; }
+  .status.revoked { border-color: var(--escalate); color: var(--escalate); border-style: solid; }
+  .badge { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
+
+  footer { border-top: 1px solid var(--line); color: var(--dim); font-family: var(--mono); font-size: 12.5px; }
+  footer .wrap { padding: 28px 24px 48px; }
+  .hr-note { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">🗿 Mimir · CockroachDB × AWS Hackathon · build log</p>
+    <h1>Building an incident-memory engine <span class="thin">that survives the incident</span></h1>
+    <p class="lede">An on-call triage agent whose memory of past incidents — and of how much the human trusts its
+      judgment — lives in CockroachDB. A lesson taught once, in one system, is instantly reusable in the next.</p>
+    <p class="sub">This is the engineering walk-through: nine small Python programs, one database, two AWS calls, and
+      three ideas that make it more than “an agent that remembers.” Every number on this page was measured against a
+      live CockroachDB cluster, not estimated.</p>
+    <p class="sub" style="margin-top:12px">The widgets below are a <b>faithful simulator</b>: they evaluate the real
+      <code>classify()</code> rules against the real measured distances, but they run in your browser and touch no
+      database. For the genuine article — live vector search, real Bedrock calls — open the
+      <a href="https://incident-memory-agent.vercel.app">deployed console</a>.</p>
+    <div class="metabar">
+      <span class="chip"><b>store</b> &nbsp;CockroachDB · VECTOR(512) · trust ledger</span>
+      <span class="chip"><b>embed</b> &nbsp;Bedrock Titan v2</span>
+      <span class="chip"><b>reason</b> &nbsp;Bedrock Converse</span>
+      <span class="chip"><b>run</b> &nbsp;AWS Lambda</span>
+      <span class="chip"><b>measured</b> &nbsp;100% → 38% escalation, live</span>
+      <span class="chip"><b>demo</b> &nbsp;<a href="https://incident-memory-agent.vercel.app">incident-memory-agent.vercel.app</a></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap layout">
+  <nav class="toc" aria-label="Contents">
+    <ol id="toc">
+      <li><a href="#idea"><span class="n">00</span> The idea</a></li>
+      <li><a href="#arch"><span class="n">01</span> Architecture</a></li>
+      <li><a href="#cast"><span class="n">02</span> The incident cast</a></li>
+      <li><a href="#embed"><span class="n">03</span> The signature</a></li>
+      <li><a href="#decide"><span class="n">04</span> Decide · try it</a></li>
+      <li><a href="#trust"><span class="n">05</span> Trust ledger · try it</a></li>
+      <li><a href="#teach"><span class="n">06</span> Teach &amp; pollinate</a></li>
+      <li><a href="#reality"><span class="n">07</span> What the cluster taught</a></li>
+      <li><a href="#shipped"><span class="n">08</span> What shipped</a></li>
+      <li><a href="#stack"><span class="n">09</span> Stack &amp; sources</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section id="idea">
+      <h2><span class="n">00</span> The idea</h2>
+      <p>Everyone at this hackathon will build “an agent that remembers incidents.” The interesting question is what a
+        production on-call agent needs <em>beyond</em> recall. Three things, and each maps to a column in the schema:</p>
+      <ul class="tight">
+        <li><b>A trust ledger.</b> The agent remembers the outcome of its own judgment, per pattern. Unchanged
+          approvals <em>earn</em> autonomy; a single rejection revokes it. The human-in-the-loop gate is learned, not
+          hardcoded.</li>
+        <li><b>A memoryless counterfactual.</b> One boolean, <code>memory_enabled</code>, skips the vector lookup. The
+          same incident stream floods the queue. Flip it back and the queue melts — before/after, no infrastructure to kill.</li>
+        <li><b>Cross-system pollination.</b> A <code>failure_class</code> taught from one Airflow incident matches its
+          BigQuery and dbt cousins in embedding space. One lesson, three systems.</li>
+      </ul>
+      <p class="muted">Why CockroachDB? An incident agent’s memory going down <em>during</em> an incident is the worst
+        possible failure mode. One store holds the vectors <em>and</em> the trust/audit ledger — no vector-DB↔ops-DB
+        sync, and a pattern taught from Airflow is matchable for BigQuery with no reindex lag.</p>
+    </section>
+
+    <section id="arch">
+      <h2><span class="n">01</span> Architecture</h2>
+      <p>Six programs around one database. Signals come in, get embedded, matched, and decided; humans respond;
+        never-seen incidents get taught back in.</p>
+      <pre class="mermaid">
+flowchart TB
+  sig[monitored_signals]:::t --> emb
+  emb["embed.py<br/>signature → Titan 512-d"]:::p --> dec
+  dec{"decide.py<br/>cosine &lt;=&gt; top-k<br/>deterministic action"}:::p
+  dec -->|no precedent| esc[escalate]:::e
+  dec -->|matched, high-risk| escp[escalate + cite precedent]:::e
+  dec -->|matched, low, earned| auto[auto-resolve]:::a
+  dec -->|matched, low| prop[propose]:::pr
+  esc --> teach["teach.py → new pattern<br/>source='promoted'"]:::p
+  prop --> resp["respond.py<br/>trust ledger"]:::p
+  auto --> resp
+  escp --> resp
+  teach --> mem[(incident_patterns<br/>VECTOR + trust ledger)]:::db
+  resp --> mem
+  mem -.matches.-> dec
+  classDef t fill:#1b222b,stroke:#262d37,color:#c6ceda;
+  classDef p fill:#20160a,stroke:#e0b25a,color:#e0b25a;
+  classDef db fill:#141a22,stroke:#5b93f0,color:#8bb4ff;
+  classDef e fill:#2a1512,stroke:#e5674f,color:#e5674f;
+  classDef pr fill:#101d33,stroke:#5b93f0,color:#7aa8f5;
+  classDef a fill:#0f2416,stroke:#46b95a,color:#5cc96f;
+      </pre>
+      <h3>The honest four-tool split</h3>
+      <p>Two CockroachDB tools are load-bearing everywhere; two apply only to the CockroachDB-native incident. Stated
+        plainly so nothing is oversold:</p>
+      <ul class="tight">
+        <li><b>Vector Indexing + MCP Server</b> — the core memory and the analyst interface, on every incident.</li>
+        <li><b>ccloud CLI + Agent Skills</b> — <em>only</em> for the hot-range incident on the memory cluster itself,
+          where the agent proposes CockroachDB’s own published skill to keep its own memory healthy.</li>
+      </ul>
+      <div class="sources"><span class="lbl">sources</span>
+        <a href="https://www.cockroachlabs.com/docs/stable/vector-indexes">CockroachDB vector indexes (C-SPANN)</a>
+        <a href="https://github.com/cockroachlabs/cockroachdb-skills">cockroachlabs/cockroachdb-skills</a>
+      </div>
+    </section>
+
+    <section id="cast">
+      <h2><span class="n">02</span> The incident cast</h2>
+      <p>Simulated, and declared — nobody has a real fleet’s outage history at a hackathon. Authenticity lives in the
+        payload <em>shape</em>: real Airflow <code>TaskInstance</code> JSON, real BigQuery <code>ErrorProto</code>, real
+        dbt <code>run_results.json</code>, the real CockroachDB hot-range status struct. Each is a
+        <code>monitored_signals</code> row with a <code>{demo, artifact, baseline}</code> payload.</p>
+      <p class="muted">Click any row in the console below (§04) to see its authentic payload and the signature it
+        produces.</p>
+      <div class="sources"><span class="lbl">shapes verified against</span>
+        <a href="https://airflow.apache.org/docs/apache-airflow/stable/stable-rest-api-ref.html">Airflow REST TaskInstance</a>
+        <a href="https://cloud.google.com/bigquery/docs/reference/rest/v2/ErrorProto">BigQuery ErrorProto</a>
+        <a href="https://docs.getdbt.com/reference/artifacts/run-results-json">dbt run_results.json</a>
+      </div>
+    </section>
+
+    <section id="embed">
+      <h2><span class="n">03</span> The signature — why embeddings, not rules</h2>
+      <p>Before matching, each signal becomes a normalized natural-language <em>signature</em> that leads with a
+        system-agnostic symptom. For schema drift, all three systems surface the same entity
+        (<code>customer_region</code>) and concept (“schema drift”, “missing / not found”) while keeping per-system
+        detail — so their embeddings cluster, but it’s genuine similarity, not string equality.</p>
+      <pre class="code"><span class="c"># the same failure class, three systems — one embedding neighborhood</span>
+<span class="k">airflow </span> schema drift: expected column 'customer_region' missing … KeyError in transform
+<span class="k">bigquery</span> schema drift: column 'customer_region' not found - BigQuery invalidQuery, unrecognized name
+<span class="k">dbt     </span> schema drift: column 'customer_region' does not exist - dbt model build error</pre>
+      <p>The vector is a Bedrock Titan v2 embedding (<code>amazon.titan-embed-text-v2:0</code>, 512 dims,
+        <code>normalize=true</code>), stored in a <code>VECTOR(512)</code> column and matched with the cosine
+        <code>&lt;=&gt;</code> operator. One <code>signature()</code> function is shared by seeding and live decisions,
+        so patterns and signals land in the same space.</p>
+      <div class="sources"><span class="lbl">sources</span>
+        <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-embed-text.html">Titan Text Embeddings v2</a>
+        <a href="https://www.cockroachlabs.com/docs/stable/vector">CockroachDB VECTOR</a>
+      </div>
+    </section>
+
+    <section id="decide">
+      <h2><span class="n">04</span> Decide — the engine, simulated here</h2>
+      <p>The action is chosen by a <em>deterministic</em> rule matrix — testable, no LLM in the branch. An LLM (Bedrock
+        Converse) only writes the human-readable reasoning. Flip the two switches and watch every decision recompute.
+        This panel evaluates the same rules in JavaScript against the measured distances; the
+        <a href="https://incident-memory-agent.vercel.app">live console</a> runs them in Python against the cluster.
+        <code>Memory</code> off is the counterfactual; <code>schema-drift taught</code> is the moment after you teach
+        the Airflow incident.</p>
+
+      <div class="console" id="console">
+        <div class="controls">
+          <div class="toggle"><span>Memory</span>
+            <div class="switch" id="sw-mem" role="switch" aria-checked="true" tabindex="0" aria-label="Memory enabled"></div></div>
+          <div class="toggle"><span>Schema-drift pattern</span>
+            <div class="switch" id="sw-taught" role="switch" aria-checked="false" tabindex="0" aria-label="Schema-drift pattern taught"></div>
+            <span id="taught-lbl">untaught</span></div>
+          <div class="stat"><b id="esc-rate">—</b><span id="esc-detail">escalation rate</span></div>
+        </div>
+        <table class="cast">
+          <thead><tr><th>incident</th><th>system</th><th>decision</th><th>match</th></tr></thead>
+          <tbody id="cast-body"></tbody>
+        </table>
+        <div class="detail" id="detail" hidden></div>
+      </div>
+
+      <p class="muted">Note the two escalations that survive with memory on: a <span
+        style="color:var(--escalate)">no-precedent</span> escalation (the agent has genuinely never seen it — the teach
+        moment) versus a <span style="color:var(--escalate)">precedent-cited</span> escalation (recognized instantly,
+        but schema/data is high-risk so a human still confirms). Same action, very different meaning.</p>
+
+      <h3>The rule matrix</h3>
+      <pre class="code"><span class="c">def classify(distance, risk, autonomy_granted, revoked_at, memory_on):</span>
+    if not memory_on:                         <span class="c"># counterfactual</span>  → escalate
+    if distance is None or distance &gt; 0.45:   <span class="c"># no precedent</span>  → escalate
+    if risk == 'high':                        <span class="c"># rule 1</span>       → escalate + cite precedent
+    if autonomy_granted and not revoked_at:                              → auto_resolve
+    else:                                                                → propose</pre>
+      <div class="sources"><span class="lbl">sources</span>
+        <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-micro.html">Bedrock Converse (Nova Micro)</a>
+      </div>
+    </section>
+
+    <section id="trust">
+      <h2><span class="n">05</span> Trust ledger — earn autonomy, live</h2>
+      <p>This is the pattern <code>upstream-source-connection-timeout</code> (low-risk, seeded with 4 prior unchanged
+        approvals). Respond the way an on-call engineer would. Autonomy is <em>earned</em> at 5 unchanged approvals with
+        zero rejections, <em>granted</em> only by your explicit click, and <em>revoked</em> the instant you reject once.</p>
+
+      <div class="trust" id="trust">
+        <div class="ledger">
+          <div class="cell"><b id="c-appr">4</b><span>approved unchanged</span></div>
+          <div class="cell"><b id="c-mod">0</b><span>modified</span></div>
+          <div class="cell"><b id="c-rej">0</b><span>rejected</span></div>
+        </div>
+        <div class="btns">
+          <button class="act" id="b-appr">Approve unchanged</button>
+          <button class="act" id="b-mod">Modify &amp; approve</button>
+          <button class="act" id="b-rej">Reject</button>
+          <button class="act grant" id="b-grant" hidden>★ Grant autonomy</button>
+          <button class="act" id="b-reset" style="margin-left:auto">reset</button>
+        </div>
+        <div class="status" id="t-status">Low-risk pattern · 4/5 unchanged approvals · not yet autonomous.</div>
+      </div>
+      <p class="muted">Ledger writes are in-SQL and atomic (<code>count = count + 1</code>); CockroachDB’s serializable
+        default makes concurrent responses safe. High-risk patterns (anything touching schema or data) can
+        <em>never</em> be granted autonomy — try it in the console above: schema-drift stays escalated no matter what.</p>
+    </section>
+
+    <section id="teach">
+      <h2><span class="n">06</span> Teach &amp; pollinate</h2>
+      <p>When <code>decide.py</code> escalates something with no precedent, a human writes the root cause and
+        resolution, and <code>teach.py</code> promotes it into a new pattern — embedded <em>from the escalated
+        signal</em>, so its cross-system cousins then match it. Toggle <code>schema-drift taught</code> in the console
+        above and watch <code>pollinate_bq</code> and <code>pollinate_dbt</code> flip from blind escalation to
+        precedent-cited recognition, with <code>applies_to</code> growing <code>[airflow] → [airflow, bigquery, dbt]</code>.</p>
+      <pre class="code"><span class="c"># root_cause is the human's own worked example — it feeds the reasoning call on every future match</span>
+"Upstream renamed customer_region → region_code in v3 with no deprecation.
+ Every consumer hard-coding the old name breaks. Schema drift — retries won't help."</pre>
+      <p>That closes the loop: one lesson, taught once from Airflow, caught in BigQuery and dbt seconds later — the whole
+        argument for embeddings over rule matchers, running against a live vector index.</p>
+    </section>
+
+
+    <section id="reality">
+      <h2><span class="n">07</span> What only the real cluster could tell us</h2>
+      <p>Everything above was verified offline before a cluster existed — deterministic self-checks, no network.
+        That caught a lot. It did not catch these four, and three of them would have failed silently on camera.</p>
+
+      <h3>The calibrator suggested a number that breaks the demo</h3>
+      <p>A pattern matches when cosine distance ≤ a threshold. We shipped <code>0.30</code> as a placeholder and wrote
+        a calibrator to fix it against real embeddings. It measured seeds at <code>0.000</code> and un-taught drift at
+        <code>0.593</code>, and confidently suggested <code>0.297</code>.</p>
+      <p>It was measuring the wrong constraint. The distance that actually matters is
+        <em>taught pattern → its cross-system cousin</em>, and <code>pollinate_dbt</code> sits at <code>0.321</code> —
+        above both the suggestion and our guess. The dbt half of the pollination beat would have shown
+        “no precedent” for an incident the agent had been taught thirty seconds earlier.</p>
+      <pre class="code"><span class="c"># the real safe window, measured</span>
+seed → own pattern .................. 0.000   must match
+taught drift → pollinate_bq ......... 0.283   must match
+taught drift → pollinate_dbt ........ <span class="k">0.321</span>   must match   ← the binding constraint
+drift → nearest seed ................ 0.593   must NOT match
+unrelated .......................... 0.70-0.88
+
+window = (0.321, 0.593)  →  <span class="k">MATCH_MAX_DISTANCE = 0.45</span></pre>
+      <p class="muted">A calibrator that measures half the constraints is worse than none — it produces a confident
+        wrong number. The fix was to make it measure post-teach distances too, and warn when the current default falls
+        outside the window.</p>
+
+      <h3>The self-referential beat was fiction until it wasn’t</h3>
+      <p>Beat 6 proposes running CockroachDB’s own <code>analyzing-range-distribution</code> Agent Skill. The simulated
+        payload described a hotspot on <code>orders_db.order_events</code> — fine for a payload that’s only
+        <em>displayed</em>, fatal for one whose SQL actually <em>executes</em>. It died with
+        <code>InvalidCatalogName</code>.</p>
+      <p>Pointing it at <code>agent_decisions</code> — the agent’s own append-only decision log, whose
+        <code>decided_at</code> index genuinely concentrates writes on the newest range — made the beat both work and
+        mean what DESIGN.md claimed: the agent using CockroachDB’s published expertise to keep its own memory healthy.
+        Simulated in its metrics, real in its subject.</p>
+
+      <h3>Two platform facts the docs don’t lead with</h3>
+      <ul class="tight">
+        <li>The skill’s documented query groups by <code>lease_holder</code>, which needs
+          <code>SHOW RANGES … WITH DETAILS</code>. CockroachDB Cloud <b>Basic rejects it</b> — serverless tenants get no
+          node-level range internals (<code>rpc error … connection reset</code>). The tier-compatible per-index range
+          distribution diagnoses the same hotspot.</li>
+        <li>CockroachDB can’t infer a placeholder’s type inside <code>ANY()</code> / <code>array_append</code>;
+          it raises <code>IndeterminateDatatype</code> until you write <code>%s::STRING</code>. This is the line that
+          grows <code>applies_to</code> — the cross-system payoff — so it failed exactly once, loudly, on first contact.</li>
+      </ul>
+
+      <h3>And one the design tools caught before a human would have</h3>
+      <p>The console’s first palette put the brand amber and the auto-resolve green at <b>ΔE 4.4 under protanopia</b> —
+        indistinguishable to a colorblind viewer. It looked fine to us. A validator script said otherwise, and the
+        shipped trio is <code>#E5674F / #5B93F0 / #2FA98C</code>, which passes every check in both themes.</p>
+      <p class="muted">The pattern across all four: offline tests prove the logic you thought to write down.
+        Real infrastructure tells you which constraints you never wrote down.</p>
+    </section>
+
+
+    <section id="shipped">
+      <h2><span class="n">08</span> What actually shipped</h2>
+      <p>Not a prototype in a notebook — a public URL a stranger can click, backed by a real cluster.</p>
+      <div class="panel">
+        <div class="sources" style="border:none;padding:0;margin:0">
+          <span class="lbl">live</span>
+          <a href="https://incident-memory-agent.vercel.app">incident-memory-agent.vercel.app</a>
+          <a href="https://github.com/jwlai-cloud/incident-memory-agent">github.com/jwlai-cloud/incident-memory-agent</a>
+        </div>
+      </div>
+      <pre class="code"><span class="c"># measured in production (Vercel us-east-1, co-located with the cluster)</span>
+counterfactual ............. 100% → <span class="k">38%</span> escalation, same 8 signals
+pollination ................ taught pattern → BigQuery <span class="k">0.72</span> · dbt <span class="k">0.68</span>
+applies_to ................. [airflow] → +bigquery → +dbt
+reset latency .............. 68.6s → <span class="k">2.8s</span>   (TRUNCATE is a schema change; DELETE isn't)
+decide, 8 signals .......... 13.5s → <span class="k">1.5s</span>   (concurrent, one connection per signal)
+verification ............... 9 scripts, each with an offline --check</pre>
+
+      <h3>The engineering habits that actually paid</h3>
+      <ul class="tight">
+        <li><b>Verify SDK shapes against primary docs, never memory.</b> Four of the payload
+          formats and two API contracts differed from what a plausible guess would have produced.</li>
+        <li><b>Make the risky number measurable, then measure it.</b> The match threshold was a
+          guess for days. The moment it met real embeddings it turned out to be wrong in a way no
+          test would have caught.</li>
+        <li><b>Let a reviewer read it.</b> An automated review found a stored-XSS vector across five
+          render paths and an overclaim in our own README — after we'd already shipped both.</li>
+        <li><b>Write the ADR when the decision reverses, not at the end.</b> Two of the five ADRs
+          here exist because a decision was overturned by evidence, and the reasoning would have
+          evaporated within a day.</li>
+      </ul>
+      <p class="muted">The through-line: every one of those came from contact with something real —
+        a vendor's actual doc, a live cluster, a reviewer, a deployment. None came from thinking harder.</p>
+    </section>
+
+    <section id="stack">
+      <h2><span class="n">09</span> Stack &amp; primary sources</h2>
+      <p>Everything was verified against current vendor docs, not training-data memory — a hackathon’s featured SDK is
+        usually newer than any model’s cutoff.</p>
+      <div class="panel">
+        <h3 style="margin-top:0">CockroachDB</h3>
+        <div class="sources" style="border:none;padding:0;margin:0">
+          <a href="https://www.cockroachlabs.com/docs/stable/vector">VECTOR type</a>
+          <a href="https://www.cockroachlabs.com/docs/stable/vector-indexes">Vector indexes (C-SPANN, cosine opclass)</a>
+          <a href="https://www.cockroachlabs.com/blog/distributed-vector-indexing-cockroachdb/">Distributed vector indexing (blog)</a>
+          <a href="https://github.com/cockroachlabs/cockroachdb-skills">cockroachdb-skills (analyzing-range-distribution)</a>
+          <a href="https://github.com/codingconcepts/crdb_ai_zero_to_hero">crdb_ai_zero_to_hero (reference sample)</a>
+        </div>
+        <h3>AWS Bedrock</h3>
+        <div class="sources" style="border:none;padding:0;margin:0">
+          <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-embed-text.html">Titan Text Embeddings v2</a>
+          <a href="https://docs.aws.amazon.com/boto3/latest/reference/services/bedrock-runtime/client/converse.html">Converse API (boto3)</a>
+          <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-micro.html">Nova Micro model card</a>
+        </div>
+        <h3>Incident payload shapes</h3>
+        <div class="sources" style="border:none;padding:0;margin:0">
+          <a href="https://airflow.apache.org/docs/apache-airflow/stable/stable-rest-api-ref.html">Airflow REST API</a>
+          <a href="https://cloud.google.com/bigquery/docs/reference/rest/v2/Job">BigQuery Job / ErrorProto</a>
+          <a href="https://docs.getdbt.com/reference/artifacts/run-results-json">dbt run_results.json</a>
+        </div>
+      </div>
+      <p class="hr-note">Built for the CockroachDB × AWS “Build with Agentic Memory” hackathon. Repo name stays
+        descriptive; “Mimir” is the tagline — <em>consult what survived</em>.</p>
+    </section>
+  </main>
+</div>
+
+<footer><div class="wrap">🗿 Mimir · incident-memory-agent · the memory is the product</div></footer>
+
+<script>
+  // ---- real cast data (payloads + signatures from the actual scripts) ----
+  const CAST = [
+    { id:"seed_1", sys:"airflow · task_failure", asset:"orders_etl.load_orders", cls:"transient",
+      artifact:'{ "exception_class":"OperationalError",\n  "exception_msg":"could not connect to server: Connection timed out",\n  "try_number":1, "max_tries":3, "duration":8.3 }',
+      sig:"psycopg2.OperationalError: could not connect to server: Connection timed out. source=airflow, signal=task_failure, asset=orders_etl.load_orders. transient connect failure, recovers on retry; fails only 02:00-02:15 UTC (source vacuum window)." },
+    { id:"seed_2", sys:"bigquery · cost_spike", asset:"analytics.marts.fct_orders", cls:"resource",
+      artifact:'{ "status":{"state":"DONE"},\n  "statistics":{"query":{"totalBytesProcessed":"4617089836646"}} }',
+      sig:"cost spike: query scanned 4.2TB (39.1x median), likely full scan / dropped partition filter. source=bigquery, signal=cost_spike, asset=analytics.marts.fct_orders. 39.1x median bytes (110.0GB baseline)." },
+    { id:"seed_3", sys:"dbt · test_failure", asset:"jaffle_shop.stg_orders", cls:"data_quality",
+      artifact:'{ "status":"fail", "failures":3,\n  "unique_id":"test.jaffle_shop.accepted_values_stg_orders_status…",\n  "message":"Got 3 results, configured to fail if != 0" }',
+      sig:"data quality: accepted values test failed (3 rows). source=dbt, signal=test_failure, asset=jaffle_shop.stg_orders. recurring (~weekly), last 6d ago." },
+    { id:"novel_airflow", sys:"airflow · task_failure", asset:"orders_etl.transform_orders", cls:"drift", drift:true,
+      artifact:'{ "exception_class":"KeyError", "exception_msg":"\'customer_region\'",\n  "columns_expected":["order_id","customer_id","customer_region","amount"],\n  "columns_received":["order_id","customer_id","region_code","amount"],\n  "try_number":2, "max_tries":2 }',
+      sig:"schema drift: expected column 'customer_region' missing from upstream data (received ['region_code']); KeyError in transform_orders. source=airflow, signal=task_failure, asset=orders_etl.transform_orders. first occurrence, retries exhausted.",
+      teachSrc:true },
+    { id:"pollinate_bq", sys:"bigquery · query_failure", asset:"analytics.marts.fct_orders", cls:"drift", drift:true,
+      artifact:'{ "status":{"errorResult":{"reason":"invalidQuery",\n    "message":"Unrecognized name: customer_region at [4:8]"}},\n  "statistics":{"query":{"totalBytesProcessed":"0"}} }',
+      sig:"schema drift: column 'customer_region' not found - BigQuery invalidQuery, unrecognized name. source=bigquery, signal=query_failure, asset=analytics.marts.fct_orders. first failure." },
+    { id:"pollinate_dbt", sys:"dbt · model_error", asset:"jaffle_shop.fct_orders", cls:"drift", drift:true,
+      artifact:'{ "status":"error", "failures":null,\n  "message":"Database Error in model fct_orders\\n  column \\"customer_region\\" does not exist" }',
+      sig:"schema drift: column 'customer_region' does not exist - dbt model build error. source=dbt, signal=model_error, asset=jaffle_shop.fct_orders. first failure." },
+    { id:"crdb_hot_range", sys:"cockroachdb · hot_range", asset:"defaultdb.agent_decisions:r11559950", cls:"hotspot",
+      artifact:'{ "range_id":11559950, "qps":18432.7, "writes_per_second":15200.4,\n  "leaseholder_node_id":102, "replica_node_ids":[102,166,172],\n  "tables":["agent_decisions"],\n  "indexes":["agent_decisions_decided_at_idx"] }',
+      sig:"hot range: single-range write hotspot on agent_decisions via agent_decisions_decided_at_idx (qps 18433), likely sequential/monotonic key. source=cockroachdb, signal=hot_range, asset=defaultdb.agent_decisions:r11559950. 40.9x median QPS, p99 4.2->118.6ms." },
+    { id:"trust_repeat", sys:"airflow · task_failure", asset:"orders_etl.load_orders", cls:"transient",
+      artifact:'{ "exception_class":"OperationalError",\n  "exception_msg":"could not connect to server: Connection timed out",\n  "try_number":1, "max_tries":3, "duration":7.9 }',
+      sig:"psycopg2.OperationalError: could not connect to server: Connection timed out. source=airflow, signal=task_failure, asset=orders_etl.load_orders. transient connect failure, recovers on retry; fails only 02:00-02:15 UTC (source vacuum window)." },
+  ];
+
+  // decision model mirroring decide.classify() + the seeded patterns
+  function decide(inc, memOn, taught) {
+    if (!memOn) return { action:"escalated", tag:"memory off — no lookup", sim:null };
+    if (inc.drift) {
+      if (!taught) return { action:"escalated", tag:"no precedent — teach moment", sim:null };
+      return { action:"escalated", tag:"precedent cited · high-risk", sim:inc.teachSrc?0.90:0.88, matched:"upstream-schema-drift" };
+    }
+    // seeded low-risk patterns
+    const sim = inc.cls==="hotspot" ? 0.93 : 0.95;
+    const matched = { transient:"upstream-source-connection-timeout", resource:"unpruned-partition-full-scan",
+                      data_quality:"new-enum-value-upstream", hotspot:"sequential-key-write-hotspot" }[inc.cls];
+    return { action:"proposed", tag: inc.cls==="hotspot" ? "ccloud_skill" : "await human", sim, matched };
+  }
+
+  const body = document.getElementById("cast-body");
+  const detail = document.getElementById("detail");
+  const swMem = document.getElementById("sw-mem");
+  const swTaught = document.getElementById("sw-taught");
+  let memOn = true, taught = false, selected = null;
+
+  const ACLS = { escalated:"a-escalate", proposed:"a-propose", auto_resolved:"a-auto" };
+  const ALBL = { escalated:"escalate", proposed:"propose", auto_resolved:"auto-resolve" };
+
+  function render() {
+    body.innerHTML = "";
+    let esc = 0, recognized = 0;
+    CAST.forEach((inc, i) => {
+      const d = decide(inc, memOn, taught);
+      if (d.action === "escalated") { esc++; if (d.matched) recognized++; }
+      const tr = document.createElement("tr");
+      if (selected === i) tr.className = "sel";
+      tr.innerHTML =
+        `<td class="id">${inc.id}</td>` +
+        `<td class="sys">${inc.sys}</td>` +
+        `<td><span class="action ${ACLS[d.action]}">${ALBL[d.action]}</span></td>` +
+        `<td class="tag">${d.tag}${d.sim ? " · sim " + d.sim.toFixed(2) : ""}</td>`;
+      tr.addEventListener("click", () => { selected = (selected === i ? null : i); render(); });
+      body.appendChild(tr);
+    });
+    const rate = Math.round((esc / CAST.length) * 100);
+    document.getElementById("esc-rate").textContent = rate + "%";
+    document.getElementById("esc-detail").textContent =
+      memOn ? `${esc}/8 escalate · ${recognized} recognized` : `${esc}/8 escalate · 0 recognized`;
+    // detail panel
+    if (selected === null) { detail.hidden = true; }
+    else {
+      const inc = CAST[selected], d = decide(inc, memOn, taught);
+      detail.hidden = false;
+      detail.innerHTML =
+        `<div class="dlbl">authentic payload · artifact</div><pre>${inc.artifact}</pre>` +
+        `<div class="dlbl">signature (embedded)</div><pre class="sig">${inc.sig}</pre>` +
+        `<div class="dlbl">decision</div><pre><span class="action ${ACLS[d.action]}">${ALBL[d.action]}</span>  ${d.tag}${d.matched ? "  → " + d.matched : ""}</pre>`;
+    }
+  }
+
+  function flip(sw, set) {
+    const v = sw.getAttribute("aria-checked") !== "true";
+    sw.setAttribute("aria-checked", v);
+    set(v);
+    if (sw === swTaught) document.getElementById("taught-lbl").textContent = v ? "taught" : "untaught";
+    render();
+  }
+  swMem.addEventListener("click", () => flip(swMem, v => memOn = v));
+  swTaught.addEventListener("click", () => flip(swTaught, v => taught = v));
+  [swMem, swTaught].forEach(sw => sw.addEventListener("keydown", e => {
+    if (e.key === " " || e.key === "Enter") { e.preventDefault(); sw.click(); }
+  }));
+  render();
+
+  // ---- trust ledger simulator ----
+  const THRESH = 5;
+  let L = { appr:4, mod:0, rej:0, granted:false, revoked:false };
+  const els = { appr:document.getElementById("c-appr"), mod:document.getElementById("c-mod"),
+    rej:document.getElementById("c-rej"), status:document.getElementById("t-status"),
+    grant:document.getElementById("b-grant") };
+
+  function eligible() { return L.appr >= THRESH && L.rej === 0 && !L.granted; }
+  function renderTrust() {
+    els.appr.textContent = L.appr; els.mod.textContent = L.mod; els.rej.textContent = L.rej;
+    const s = els.status; s.className = "status";
+    els.grant.hidden = !eligible();
+    if (L.revoked) { s.classList.add("revoked");
+      s.textContent = "✕ Autonomy revoked — one rejection after a grant clears it. Back to human-in-the-loop."; }
+    else if (L.granted) { s.classList.add("auto");
+      s.innerHTML = "✓ Autonomous for this pattern. decide.py will now auto-resolve confident low-risk matches — until a single rejection revokes it."; }
+    else if (eligible()) { s.classList.add("ask");
+      s.innerHTML = `★ “I’ve proposed this fix ${L.appr} times; you approved unchanged every time. Pre-authorize this pattern?” — your explicit click grants it.`; }
+    else { s.textContent = `Low-risk pattern · ${L.appr}/${THRESH} unchanged approvals${L.rej? " · "+L.rej+" rejection (autonomy blocked)":""} · not yet autonomous.`; }
+  }
+  document.getElementById("b-appr").addEventListener("click", () => { if(L.revoked)return; L.appr++; renderTrust(); });
+  document.getElementById("b-mod").addEventListener("click", () => { if(L.revoked)return; L.mod++; renderTrust(); });
+  document.getElementById("b-rej").addEventListener("click", () => {
+    L.rej++; if (L.granted) { L.granted = false; L.revoked = true; } renderTrust(); });
+  document.getElementById("b-grant").addEventListener("click", () => { if(eligible()){ L.granted = true; } renderTrust(); });
+  document.getElementById("b-reset").addEventListener("click", () => {
+    L = { appr:4, mod:0, rej:0, granted:false, revoked:false }; renderTrust(); });
+  renderTrust();
+
+  // ---- scroll-spy TOC ----
+  const links = [...document.querySelectorAll("#toc a")];
+  const map = {}; links.forEach(a => map[a.getAttribute("href").slice(1)] = a);
+  const obs = new IntersectionObserver(es => {
+    es.forEach(e => { if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove("active"));
+      if (map[e.target.id]) map[e.target.id].classList.add("active");
+    }});
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  document.querySelectorAll("main section").forEach(s => obs.observe(s));
+</script>
