@@ -14,3 +14,6 @@ __pycache__/
 # local run artifacts
 *.log
 .vercel
+
+# repo-in-repo archive, not for a public repo
+*.zip
