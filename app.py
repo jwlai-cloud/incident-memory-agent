@@ -25,9 +25,30 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scr
 # So the cluster CA travels with the code. It is a public certificate — no private key —
 # fetched from the same unauthenticated URL the Cloud console gives you. Normalised here,
 # before the scripts are imported, so every module reading COCKROACH_URL is corrected.
-_CA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certs", "cockroach-ca.crt")
+def _ca_path() -> str | None:
+    """Where to find the cluster CA, in preference order.
+
+    1. `COCKROACH_CA_PEM` — the certificate as an env var, materialised to /tmp. Keeps
+       it out of the repo; the only writable path in a serverless sandbox is /tmp.
+    2. `certs/cockroach-ca.crt` — a committed copy, for local dev or a self-hosted run.
+    3. None — fall through to libpq's own default (~/.postgresql/root.crt), which is
+       what a developer machine already has.
+    """
+    pem = os.environ.get("COCKROACH_CA_PEM", "").strip()
+    if pem:
+        tmp = "/tmp/cockroach-ca.crt"
+        if not os.path.exists(tmp):
+            # tolerate a value pasted with literal \n instead of real newlines
+            with open(tmp, "w") as fh:
+                fh.write(pem.replace("\\n", "\n") + "\n")
+        return tmp
+    bundled = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certs", "cockroach-ca.crt")
+    return bundled if os.path.exists(bundled) else None
+
+
+_CA = _ca_path()
 _url = os.environ.get("COCKROACH_URL", "")
-if _url and "sslrootcert=" not in _url and os.path.exists(_CA):
+if _url and "sslrootcert=" not in _url and _CA:
     os.environ["COCKROACH_URL"] = _url + ("&" if "?" in _url else "?") + f"sslrootcert={_CA}"
 
 import ccloud_wrapper  # noqa: E402

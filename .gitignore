@@ -17,3 +17,6 @@ __pycache__/
 
 # repo-in-repo archive, not for a public repo
 *.zip
+
+# cluster CA: supplied via the COCKROACH_CA_PEM env var instead
+certs/
