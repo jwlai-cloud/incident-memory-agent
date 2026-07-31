@@ -52,30 +52,30 @@ offline `--check`.
 - [x] **Threshold calibrated** — `MATCH_MAX_DISTANCE = 0.45` from measured
       distances. The pre-teach-only calibration suggested 0.297, which would have
       silently broken the dbt cross-system match (0.321). See ADR 0004.
+- [x] **Deployed** — https://incident-memory-agent.vercel.app (Vercel, us-east-1,
+      co-located with the cluster). Public, no login. Cluster CA supplied via
+      `COCKROACH_CA_PEM`; model-invoking endpoints capped by a durable counter in
+      CockroachDB (500/day global, 100/day per IP).
 - [x] **Step 9 — demo console** (`app.py` + `templates/index.html`): guided
       7-beat rail, incident timeline, trust/runbook panel, live-SQL proof panel.
       Driven end-to-end with Playwright, zero console errors.
 
 ## Next (priority order)
 
-1. **Deploy the console** to a public URL (the submission's "working demo URL").
-   Flask dev server is local-only; needs a WSGI host + the connection string as a
-   platform secret.
-2. **Step 8 — MCP wiring.** The cluster's Connect dialog gives a managed MCP
+1. **Record the demo video** (<3 min) following `DEMO_SCRIPT.md`; the console's
+   beat rail is the shot list.
+2. Submission writeup (Devpost) + regenerated architecture diagrams.
+3. **Step 8 — MCP wiring.** The cluster's Connect dialog gives a managed MCP
    endpoint (`https://cockroachlabs.cloud/mcp`, header `mcp-cluster-id`).
    Dev-side use satisfies the requirement per the session FAQ.
-3. **Record the demo video** (<3 min) following `DEMO_SCRIPT.md`; the console's
-   beat rail is the shot list.
-4. Submission writeup + regenerate `architecture.svg` for this design.
+4. **AWS budget action** on the Bedrock key — the slow backstop under the durable
+   in-database cap. Console-only; the `mimir-bedrock` IAM user cannot create it.
 
 ## Open questions
 
-- **Hosting.** Where the console gets deployed, and how `COCKROACH_URL` is
-  injected as a secret there.
 - **Cluster longevity.** Basic's free tier recurs monthly (the $400 trial credit
   expires 2026-08-24), so the demo URL should survive judging — but confirm the
   cluster isn't paused for inactivity before submitting.
-- `incident-memory-agent.zip` is a tracked repo-in-repo — drop before submission.
 
 ## Constraints discovered on the real cluster
 
@@ -84,6 +84,10 @@ offline `--check`.
   The beat-6 diagnostic uses the tier-compatible per-index range distribution.
 - CockroachDB cannot infer a placeholder's type inside `ANY()` / `array_append`
   — needs an explicit `::STRING` cast (`IndeterminateDatatype` otherwise).
+- `TRUNCATE` is a schema change (new descriptor via a job): ~65s on Basic for a
+  handful of rows. `DELETE` is ~1s.
+- CockroachDB Cloud signs with its own CA, so `sslrootcert=system` fails; the CA
+  must be supplied explicitly (here via `COCKROACH_CA_PEM`).
 
 ## Decisions on record (see `docs/adr/`)
 

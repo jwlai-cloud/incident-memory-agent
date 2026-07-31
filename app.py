@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import sys
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, jsonify, render_template, request
@@ -155,8 +156,12 @@ def _json_errors(e):
     from werkzeug.exceptions import HTTPException
     if isinstance(e, HTTPException):
         return jsonify(ok=False, error=e.description), e.code
-    app.logger.exception("unhandled")
-    return jsonify(ok=False, error=f"{type(e).__name__}: {e}"), 500
+    # Do NOT return str(e): psycopg embeds the cluster hostname and every resolved IP in
+    # its connection errors, and this endpoint is public. Full detail goes to the log;
+    # the client gets the exception type and an id to quote.
+    ref = uuid.uuid4().hex[:8]
+    app.logger.exception("unhandled [%s]", ref)
+    return jsonify(ok=False, error=f"{type(e).__name__} (ref {ref}) — see server logs"), 500
 
 
 @app.get("/")

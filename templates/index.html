@@ -203,6 +203,10 @@ td{padding:7px 8px 7px 0;border-top:1px solid var(--line-soft);vertical-align:to
 
 <script>
 const $ = s => document.querySelector(s);
+// Every value below originates in the database, and /api/teach lets a visitor store
+// arbitrary text that is then rendered to everyone else. Escape at the boundary.
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let STATE = null, OPEN = null, BUSY = false;
 
 const BEATS = [
@@ -215,7 +219,9 @@ const BEATS = [
   {id:'trust',  t:'Earn autonomy',          s:'5th approval fires the trust ask'},
 ];
 
-function toast(msg, spin){ const t=$('#toast'); t.innerHTML = (spin?'<span class="spin"></span> ':'')+msg;
+function toast(msg, spin){ const t=$('#toast'); t.textContent='';
+  if(spin){ const s=document.createElement('span'); s.className='spin'; t.append(s, ' '); }
+  t.append(document.createTextNode(msg));   // textContent: server text is never markup
   t.classList.add('show'); if(!spin) setTimeout(()=>t.classList.remove('show'), 3200); }
 function hideToast(){ $('#toast').classList.remove('show'); }
 
@@ -263,9 +269,9 @@ function renderSpine(){
     const why = s.matched_label ? ('matched '+s.matched_label)
       : (s.action==='escalated' ? 'no precedent — needs a human' : (s.reasoning||'').slice(0,90));
     row.innerHTML =
-      `<span class="did">${s.demo_id}</span>`+
-      `<span class="sys">${s.source_system}</span>`+
-      `<span class="why">${why}</span>`+
+      `<span class="did">${esc(s.demo_id)}</span>`+
+      `<span class="sys">${esc(s.source_system)}</span>`+
+      `<span class="why">${esc(why)}</span>`+
       `<span><span class="chip c-${act}">${act==='none'?'not decided':act.replace('_','-')}</span>`+
       (s.similarity? ` <span class="sim">${(+s.similarity).toFixed(2)}</span>`:'')+`</span>`;
     row.onclick = ()=>{ OPEN = OPEN===s.demo_id? null : s.demo_id; renderSpine(); };
@@ -286,15 +292,15 @@ function detail(s){
            + `<button class="act" onclick="respond('${s.decision_id}','approved_unchanged')">Approve</button>`;
     else
       acts = `<button class="act primary" onclick="respond('${s.decision_id}','approved_unchanged')">Approve unchanged</button>`
-           + `<button class="act" onclick="respond('${s.decision_id}','modified')">Modify</button>`
+           + `<button class="act" onclick="modifyThen('${s.decision_id}')">Modify</button>`
            + `<button class="act" onclick="respond('${s.decision_id}','rejected')">Reject</button>`;
   } else if(s.human_response){
-    acts = `<span class="sim">human responded: ${s.human_response}</span>`;
+    acts = `<span class="sim">human responded: ${esc(s.human_response)}</span>`;
   }
   d.innerHTML =
-    `<div class="lbl">asset</div><pre>${s.asset}</pre>`+
-    `<div class="lbl">agent reasoning</div><pre>${s.reasoning || '— not decided yet —'}</pre>`+
-    (s.risk_level? `<div class="lbl">pattern</div><pre>${s.matched_label} · risk ${s.risk_level} · ${s.remediation_channel}${s.skill_ref? ' · '+s.skill_ref:''}</pre>`:'')+
+    `<div class="lbl">asset</div><pre>${esc(s.asset)}</pre>`+
+    `<div class="lbl">agent reasoning</div><pre>${esc(s.reasoning || '— not decided yet —')}</pre>`+
+    (s.risk_level? `<div class="lbl">pattern</div><pre>${esc(s.matched_label)} · risk ${esc(s.risk_level)} · ${esc(s.remediation_channel)}${s.skill_ref? ' · '+esc(s.skill_ref):''}</pre>`:'')+
     `<div class="acts">${acts}</div>`;
   return d;
 }
@@ -304,11 +310,11 @@ function renderRunbook(){
   if(!STATE.runbook.length){ el.innerHTML='<p class="empty">no patterns yet</p>'; return; }
   el.innerHTML = '<table><thead><tr><th>pattern</th><th>systems</th><th>trust</th></tr></thead><tbody>'+
     STATE.runbook.map(p=>{
-      const pills = (p.applies_to||[]).map((a,i)=>`<span class="sys-pill${p.source==='promoted'&&i>0?' new':''}">${a}</span>`).join('');
+      const pills = (p.applies_to||[]).map((a,i)=>`<span class="sys-pill${p.source==='promoted'&&i>0?' new':''}">${esc(a)}</span>`).join('');
       const aut = p.autonomy_granted ? '<span class="aut y">autonomous</span>'
         : (STATE.autonomy_asks.includes(p.id) ? `<button class="act" style="padding:2px 7px;font-size:10px" onclick="grant('${p.id}')">grant autonomy</button>`
         : `<span class="aut n">${p.approved_unchanged_count}/5</span>`);
-      return `<tr><td><span class="lab">${p.label}</span><br><span class="${p.risk_level==='high'?'risk-high':'risk-low'}">risk ${p.risk_level}</span>`+
+      return `<tr><td><span class="lab">${esc(p.label)}</span><br><span class="${p.risk_level==='high'?'risk-high':'risk-low'}">risk ${esc(p.risk_level)}</span>`+
              (p.source==='promoted'?' <span class="sys-pill new">taught live</span>':'')+
              `</td><td>${pills}</td><td>${aut}</td></tr>`;
     }).join('')+'</tbody></table>';
@@ -316,12 +322,12 @@ function renderRunbook(){
 
 function renderProof(p){
   $('#proof').innerHTML = p.queries.map(q=>{
-    if(q.error) return `<div class="proof"><div class="q">${q.title}</div><pre>${q.error}</pre></div>`;
+    if(q.error) return `<div class="proof"><div class="q">${esc(q.title)}</div><pre>${esc(q.error)}</pre></div>`;
     if(!q.rows.length) return '';
     const cols = Object.keys(q.rows[0]);
-    return `<div class="proof"><div class="q">${q.title}</div><pre>${q.sql}</pre>`+
-      `<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`+
-      q.rows.map(r=>`<tr>${cols.map(c=>`<td>${fmt(r[c])}</td>`).join('')}</tr>`).join('')+
+    return `<div class="proof"><div class="q">${esc(q.title)}</div><pre>${esc(q.sql)}</pre>`+
+      `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`+
+      q.rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(fmt(r[c]))}</td>`).join('')}</tr>`).join('')+
       `</tbody></table></div>`;
   }).join('');
 }
@@ -380,7 +386,14 @@ async function doSkill(id){ if(BUSY)return; BUSY=true; toast('Running the Cockro
   try{ const r = await api('/api/ccloud',{decision_id:id, via:'sql'}); await refresh();
        toast('✓ '+r.skill_ref+' returned live range data'); }
   catch(e){ toast('✗ '+e.message); } BUSY=false; renderBeats(); }
-async function respond(id, kind){ if(BUSY)return; BUSY=true; toast(kind.replace('_',' ')+'…',true);
+function modifyThen(id){
+  // 'modified' is meaningless without the edit — app.py appends modified_text to the
+  // decision's reasoning, and the trust ledger counts it separately from an unchanged approval.
+  const text = prompt('What did you change about the proposed fix?');
+  if(text === null || !text.trim()) return;
+  respond(id, 'modified', text.trim());
+}
+async function respond(id, kind, modifiedText){ if(BUSY)return; BUSY=true; toast(kind.replace('_',' ')+'…',true);
   try{ const r = await api('/api/respond',{decision_id:id, response:kind}); await refresh();
        toast(r.autonomy_ask ? '★ 5 unchanged approvals — grant autonomy in the runbook'
             : (r.autonomy_revoked ? '✕ autonomy revoked by that rejection' : '✓ recorded · trust ledger updated')); }

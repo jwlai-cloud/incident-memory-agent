@@ -40,6 +40,23 @@ def assert_read_only(sql: str) -> None:
         raise ValueError(f"refusing non-read-only command via ccloud_skill channel (found {m.group(1)!r}): {sql}")
 
 
+_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*$")
+
+
+def _safe_ident(name: str) -> str:
+    """Whitelist a SQL identifier taken from a signal payload.
+
+    `SHOW RANGES FROM DATABASE <db>` cannot take a placeholder, so db/table names are
+    interpolated as text. They arrive from monitored_signals.payload, which teach.py
+    lets a human write — that is a second-order injection path. Reject anything that is
+    not a bare identifier rather than trying to quote it.
+    """
+    name = str(name)
+    if not _IDENT.match(name):
+        raise ValueError(f"refusing unsafe SQL identifier from signal payload: {name!r}")
+    return name
+
+
 def render_command(artifact: dict) -> tuple[str, str]:
     """The analyzing-range-distribution skill's diagnostic, for the hot table.
 
@@ -50,8 +67,8 @@ def render_command(artifact: dict) -> tuple[str, str]:
     analysis: per-index range distribution plus the replica set and zone spread,
     which is what actually diagnoses a sequential-key hotspot.
     """
-    db = (artifact.get("databases") or ["defaultdb"])[0]
-    tbl = (artifact.get("tables") or ["unknown"])[0]
+    db = _safe_ident((artifact.get("databases") or ["defaultdb"])[0])
+    tbl = _safe_ident((artifact.get("tables") or ["unknown"])[0])
     target = f"{db}.public.{tbl}"
     sql = (
         "SELECT json_agg(t) FROM ("
@@ -129,7 +146,7 @@ def run(decision_id: str, via: str = "ccloud", cluster: str | None = None) -> di
         record = {"skill_ref": d["skill_ref"], "via": via, "target": target,
                   "command": sql, "result": result}
         cur.execute(
-            "UPDATE agent_decisions SET reasoning = reasoning || %s, outcome='confirmed', resolved_at=now() "
+            "UPDATE agent_decisions SET reasoning = coalesce(reasoning, '') || %s, outcome='confirmed', resolved_at=now() "
             "WHERE id = %s",
             ("\n[ccloud_skill] " + json.dumps(record), decision_id),
         )

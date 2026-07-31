@@ -66,7 +66,8 @@ def respond(cur, decision_id: str, response_type: str, modified_text: str | None
     if response_type == "modified" and modified_text:
         cur.execute(
             "UPDATE agent_decisions SET human_response=%s, outcome=%s, resolved_at=now(), "
-            "reasoning = reasoning || %s WHERE id=%s",
+            # coalesce: NULL || text is NULL in SQL, which would erase the reasoning
+            "reasoning = coalesce(reasoning, '') || %s WHERE id=%s",
             (response_type, outcome, f"\n[human modified] {modified_text}", decision_id),
         )
     else:

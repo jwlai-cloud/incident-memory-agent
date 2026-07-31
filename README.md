@@ -45,10 +45,14 @@ sources.
 
 - **CockroachDB — Distributed Vector Indexing (C-SPANN):** incident patterns are
   stored as `VECTOR(512)` and matched with the cosine `<=>` operator
-  (`vector_cosine_ops`). This is the core memory, used on every incident.
-- **CockroachDB — MCP Server:** the analyst interface — read-only inspection of
-  the schema/memory during development, and (planned) a runtime "ask the memory"
-  chat. Used on every incident.
+  (`vector_cosine_ops`). This is the core memory, and it *is* on every incident's
+  decision path.
+- **CockroachDB — MCP Server:** used **development-side**, not in the request path.
+  The cluster exposes a managed MCP endpoint that a coding assistant queries read-only
+  to inspect schema and memory while building. The runtime decision path
+  (`decide.py`) talks to CockroachDB directly over pgwire and does not go through MCP.
+  The session FAQ confirms dev-side usage satisfies the tool requirement; saying
+  otherwise would overstate it.
 - **CockroachDB — ccloud CLI + Agent Skills:** *only* for the CockroachDB-native
   incident. A matched hot-range pattern proposes the real
   [`analyzing-range-distribution`](https://github.com/cockroachlabs/cockroachdb-skills)
@@ -100,9 +104,11 @@ Dependencies: `psycopg[binary]` (v3), `boto3`.
 
 ## Status
 
-Core complete (6 scripts, all offline-verified via `--check`); end-to-end run +
-threshold calibration against real infra pending. See
-**[docs/PROGRESS.md](docs/PROGRESS.md)**.
+Live: **https://incident-memory-agent.vercel.app** — every beat runs against a real
+CockroachDB Cloud cluster with real Bedrock embeddings and reasoning. Nine scripts,
+each with an offline `--check`. Measured on the live cluster: escalation
+**100% → 38%** with memory on, and a pattern taught from Airflow matches its
+BigQuery (0.72) and dbt (0.68) cousins. See **[docs/PROGRESS.md](docs/PROGRESS.md)**.
 
 ## Docs
 
