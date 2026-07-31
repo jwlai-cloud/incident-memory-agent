@@ -9,7 +9,9 @@ the human trusts its judgment, persists in CockroachDB. A lesson taught once,
 anywhere, is instantly reusable everywhere, and survives any failure — including
 the incident itself.
 
-![Architecture](docs/architecture.svg)
+![Architecture](docs/architecture.png)
+
+*Interactive versions: [architecture](docs/diagrams/architecture.html) · [one incident end to end](docs/diagrams/sequence.html) — both have guided views, hover-to-trace and export.*
 
 > **▶ [Interactive engineering walk-through](https://claude.ai/code/artifact/45d43973-9d2e-4b78-819d-a5acd2e5a872)** — a live tutorial where the widgets run the real decision logic: toggle memory on/off, teach a schema-drift pattern and watch it pollinate across systems, and earn autonomy in the trust-ledger simulator.
 
