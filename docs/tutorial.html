@@ -157,14 +157,19 @@
     <p class="lede">An on-call triage agent whose memory of past incidents — and of how much the human trusts its
       judgment — lives in CockroachDB. A lesson taught once, in one system, is instantly reusable in the next.</p>
     <p class="sub">This is the engineering walk-through: nine small Python programs, one database, two AWS calls, and
-      three ideas that make it more than “an agent that remembers.” Every widget below runs the real decision logic —
-      and every number on this page was measured against a live CockroachDB cluster, not estimated.</p>
+      three ideas that make it more than “an agent that remembers.” Every number on this page was measured against a
+      live CockroachDB cluster, not estimated.</p>
+    <p class="sub" style="margin-top:12px">The widgets below are a <b>faithful simulator</b>: they evaluate the real
+      <code>classify()</code> rules against the real measured distances, but they run in your browser and touch no
+      database. For the genuine article — live vector search, real Bedrock calls — open the
+      <a href="https://incident-memory-agent.vercel.app">deployed console</a>.</p>
     <div class="metabar">
       <span class="chip"><b>store</b> &nbsp;CockroachDB · VECTOR(512) · trust ledger</span>
       <span class="chip"><b>embed</b> &nbsp;Bedrock Titan v2</span>
       <span class="chip"><b>reason</b> &nbsp;Bedrock Converse</span>
       <span class="chip"><b>run</b> &nbsp;AWS Lambda</span>
       <span class="chip"><b>measured</b> &nbsp;100% → 38% escalation, live</span>
+      <span class="chip"><b>demo</b> &nbsp;<a href="https://incident-memory-agent.vercel.app">incident-memory-agent.vercel.app</a></span>
     </div>
   </div>
 </header>
@@ -180,7 +185,8 @@
       <li><a href="#trust"><span class="n">05</span> Trust ledger · try it</a></li>
       <li><a href="#teach"><span class="n">06</span> Teach &amp; pollinate</a></li>
       <li><a href="#reality"><span class="n">07</span> What the cluster taught</a></li>
-      <li><a href="#stack"><span class="n">08</span> Stack &amp; sources</a></li>
+      <li><a href="#shipped"><span class="n">08</span> What shipped</a></li>
+      <li><a href="#stack"><span class="n">09</span> Stack &amp; sources</a></li>
     </ol>
   </nav>
 
@@ -280,9 +286,11 @@ flowchart TB
     </section>
 
     <section id="decide">
-      <h2><span class="n">04</span> Decide — the engine, live</h2>
+      <h2><span class="n">04</span> Decide — the engine, simulated here</h2>
       <p>The action is chosen by a <em>deterministic</em> rule matrix — testable, no LLM in the branch. An LLM (Bedrock
         Converse) only writes the human-readable reasoning. Flip the two switches and watch every decision recompute.
+        This panel evaluates the same rules in JavaScript against the measured distances; the
+        <a href="https://incident-memory-agent.vercel.app">live console</a> runs them in Python against the cluster.
         <code>Memory</code> off is the counterfactual; <code>schema-drift taught</code> is the moment after you teach
         the Airflow incident.</p>
 
@@ -414,8 +422,44 @@ window = (0.321, 0.593)  →  <span class="k">MATCH_MAX_DISTANCE = 0.45</span></
         Real infrastructure tells you which constraints you never wrote down.</p>
     </section>
 
+
+    <section id="shipped">
+      <h2><span class="n">08</span> What actually shipped</h2>
+      <p>Not a prototype in a notebook — a public URL a stranger can click, backed by a real cluster.</p>
+      <div class="panel">
+        <div class="sources" style="border:none;padding:0;margin:0">
+          <span class="lbl">live</span>
+          <a href="https://incident-memory-agent.vercel.app">incident-memory-agent.vercel.app</a>
+          <a href="https://github.com/jwlai-cloud/incident-memory-agent">github.com/jwlai-cloud/incident-memory-agent</a>
+        </div>
+      </div>
+      <pre class="code"><span class="c"># measured in production (Vercel us-east-1, co-located with the cluster)</span>
+counterfactual ............. 100% → <span class="k">38%</span> escalation, same 8 signals
+pollination ................ taught pattern → BigQuery <span class="k">0.72</span> · dbt <span class="k">0.68</span>
+applies_to ................. [airflow] → +bigquery → +dbt
+reset latency .............. 68.6s → <span class="k">2.8s</span>   (TRUNCATE is a schema change; DELETE isn't)
+decide, 8 signals .......... 13.5s → <span class="k">1.5s</span>   (concurrent, one connection per signal)
+verification ............... 9 scripts, each with an offline --check</pre>
+
+      <h3>The engineering habits that actually paid</h3>
+      <ul class="tight">
+        <li><b>Verify SDK shapes against primary docs, never memory.</b> Four of the payload
+          formats and two API contracts differed from what a plausible guess would have produced.</li>
+        <li><b>Make the risky number measurable, then measure it.</b> The match threshold was a
+          guess for days. The moment it met real embeddings it turned out to be wrong in a way no
+          test would have caught.</li>
+        <li><b>Let a reviewer read it.</b> An automated review found a stored-XSS vector across five
+          render paths and an overclaim in our own README — after we'd already shipped both.</li>
+        <li><b>Write the ADR when the decision reverses, not at the end.</b> Two of the five ADRs
+          here exist because a decision was overturned by evidence, and the reasoning would have
+          evaporated within a day.</li>
+      </ul>
+      <p class="muted">The through-line: every one of those came from contact with something real —
+        a vendor's actual doc, a live cluster, a reviewer, a deployment. None came from thinking harder.</p>
+    </section>
+
     <section id="stack">
-      <h2><span class="n">08</span> Stack &amp; primary sources</h2>
+      <h2><span class="n">09</span> Stack &amp; primary sources</h2>
       <p>Everything was verified against current vendor docs, not training-data memory — a hackathon’s featured SDK is
         usually newer than any model’s cutoff.</p>
       <div class="panel">
@@ -470,9 +514,9 @@ window = (0.321, 0.593)  →  <span class="k">MATCH_MAX_DISTANCE = 0.45</span></
     { id:"pollinate_dbt", sys:"dbt · model_error", asset:"jaffle_shop.fct_orders", cls:"drift", drift:true,
       artifact:'{ "status":"error", "failures":null,\n  "message":"Database Error in model fct_orders\\n  column \\"customer_region\\" does not exist" }',
       sig:"schema drift: column 'customer_region' does not exist - dbt model build error. source=dbt, signal=model_error, asset=jaffle_shop.fct_orders. first failure." },
-    { id:"crdb_hot_range", sys:"cockroachdb · hot_range", asset:"orders_db.order_events:r4213", cls:"hotspot",
-      artifact:'{ "range_id":4213, "qps":18432.7, "writes_per_second":15200.4,\n  "leaseholder_node_id":3, "replica_node_ids":[3,1,5],\n  "tables":["order_events"], "indexes":["order_events_pkey"] }',
-      sig:"hot range: single-range write hotspot on order_events via order_events_pkey (qps 18433), likely sequential/monotonic key. source=cockroachdb, signal=hot_range, asset=orders_db.order_events:r4213. 40.9x median QPS, p99 4.2->118.6ms." },
+    { id:"crdb_hot_range", sys:"cockroachdb · hot_range", asset:"defaultdb.agent_decisions:r11559950", cls:"hotspot",
+      artifact:'{ "range_id":11559950, "qps":18432.7, "writes_per_second":15200.4,\n  "leaseholder_node_id":102, "replica_node_ids":[102,166,172],\n  "tables":["agent_decisions"],\n  "indexes":["agent_decisions_decided_at_idx"] }',
+      sig:"hot range: single-range write hotspot on agent_decisions via agent_decisions_decided_at_idx (qps 18433), likely sequential/monotonic key. source=cockroachdb, signal=hot_range, asset=defaultdb.agent_decisions:r11559950. 40.9x median QPS, p99 4.2->118.6ms." },
     { id:"trust_repeat", sys:"airflow · task_failure", asset:"orders_etl.load_orders", cls:"transient",
       artifact:'{ "exception_class":"OperationalError",\n  "exception_msg":"could not connect to server: Connection timed out",\n  "try_number":1, "max_tries":3, "duration":7.9 }',
       sig:"psycopg2.OperationalError: could not connect to server: Connection timed out. source=airflow, signal=task_failure, asset=orders_etl.load_orders. transient connect failure, recovers on retry; fails only 02:00-02:15 UTC (source vacuum window)." },

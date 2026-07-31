@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "One incident, end to end",
+    "subtitle": "A BigQuery schema-drift incident matching a pattern taught from Airflow moments earlier",
+    "output": "sequence.html",
+    "viewBox": [
+      980,
+      900
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "recall",
+        "label": "Recall",
+        "focus": [
+          "console",
+          "decide",
+          "bedrock",
+          "crdb"
+        ],
+        "note": "Signature, embedding, and the cosine search that finds a precedent from a different system."
+      },
+      {
+        "id": "rules",
+        "label": "The decision is rules, not a model",
+        "focus": [
+          "decide",
+          "bedrock"
+        ],
+        "note": "classify() picks the action before Converse is called. The model only writes the explanation."
+      },
+      {
+        "id": "ledger",
+        "label": "Trust ledger",
+        "focus": [
+          "human",
+          "console",
+          "respond",
+          "crdb"
+        ],
+        "note": "The human's response is what grows applies_to and moves the pattern toward earned autonomy."
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "human",
+      "type": "external",
+      "label": "On-call human",
+      "sublabel": "reviews the queue"
+    },
+    {
+      "id": "console",
+      "type": "frontend",
+      "label": "Console",
+      "sublabel": "Flask on Vercel"
+    },
+    {
+      "id": "decide",
+      "type": "backend",
+      "label": "decide.py",
+      "sublabel": "rules, not a model"
+    },
+    {
+      "id": "bedrock",
+      "type": "cloud",
+      "label": "AWS Bedrock",
+      "sublabel": "Titan + Nova"
+    },
+    {
+      "id": "crdb",
+      "type": "database",
+      "label": "CockroachDB",
+      "sublabel": "vectors + ledger"
+    },
+    {
+      "id": "respond",
+      "type": "backend",
+      "label": "respond.py",
+      "sublabel": "trust ledger"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 330,
+      "label": "Recall"
+    },
+    {
+      "from": 350,
+      "to": 520,
+      "label": "Decide"
+    },
+    {
+      "from": 540,
+      "to": 760,
+      "label": "Human response"
+    }
+  ],
+  "messages": [
+    {
+      "id": "fire",
+      "from": "console",
+      "to": "decide",
+      "y": 185,
+      "label": "pollinate_bq fires",
+      "variant": "emphasis"
+    },
+    {
+      "id": "embed",
+      "from": "decide",
+      "to": "bedrock",
+      "y": 265,
+      "label": "signature \u2192 Titan v2 \u2192 512-d vector"
+    },
+    {
+      "id": "vec",
+      "from": "bedrock",
+      "to": "decide",
+      "y": 300,
+      "label": "embedding",
+      "variant": "return"
+    },
+    {
+      "id": "search",
+      "from": "decide",
+      "to": "crdb",
+      "y": 365,
+      "label": "ORDER BY embedding <=> $1 LIMIT 3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "hit",
+      "from": "crdb",
+      "to": "decide",
+      "y": 400,
+      "label": "upstream-schema-drift \u00b7 distance 0.28",
+      "variant": "return"
+    },
+    {
+      "id": "explain",
+      "from": "decide",
+      "to": "bedrock",
+      "y": 480,
+      "label": "classify() already chose escalate \u2014 Converse only explains"
+    },
+    {
+      "id": "prose",
+      "from": "bedrock",
+      "to": "decide",
+      "y": 512,
+      "label": "\"\u2026similar to previous issues in airflow\"",
+      "variant": "return"
+    },
+    {
+      "id": "write",
+      "from": "decide",
+      "to": "crdb",
+      "y": 560,
+      "label": "INSERT agent_decisions"
+    },
+    {
+      "id": "queue",
+      "from": "decide",
+      "to": "console",
+      "y": 595,
+      "label": "escalated + precedent",
+      "variant": "return"
+    },
+    {
+      "id": "review",
+      "from": "console",
+      "to": "human",
+      "y": 630,
+      "label": "shows the cited precedent",
+      "variant": "return"
+    },
+    {
+      "id": "approve",
+      "from": "human",
+      "to": "respond",
+      "y": 668,
+      "label": "approve unchanged",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ledger",
+      "from": "respond",
+      "to": "crdb",
+      "y": 705,
+      "label": "applies_to += bigquery, counters +1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "done",
+      "from": "crdb",
+      "to": "human",
+      "y": 745,
+      "label": "one lesson, now three systems",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "decide",
+      "from": 180,
+      "to": 600,
+      "type": "backend"
+    },
+    {
+      "participant": "bedrock",
+      "from": 260,
+      "to": 305,
+      "type": "cloud"
+    },
+    {
+      "participant": "crdb",
+      "from": 360,
+      "to": 405,
+      "type": "database"
+    },
+    {
+      "participant": "respond",
+      "from": 663,
+      "to": 712,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Why this is the money shot",
+      "items": [
+        "The precedent was taught from an Airflow KeyError, not a BigQuery error",
+        "Two different vendors' error formats, one failure class",
+        "Recall is a cosine search over a C-SPANN index, not a rule table"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Rules decide; the model explains",
+      "items": [
+        "classify() runs before Converse is ever called",
+        "risk_level='high' escalates even on a confident match",
+        "If Bedrock is down, a template fallback keeps the decision identical"
+      ]
+    }
+  ]
+}

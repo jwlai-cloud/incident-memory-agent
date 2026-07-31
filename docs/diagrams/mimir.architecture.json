@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Mimir \u2014 incident memory agent",
+    "subtitle": "Vectors, the trust ledger and the audit log in one CockroachDB cluster; AWS Bedrock embeds and explains",
+    "output": "architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "decision-path",
+        "label": "Decision path",
+        "focus": [
+          "signals",
+          "console",
+          "decide",
+          "patterns",
+          "decisions"
+        ],
+        "note": "One incident from arrival to a recorded decision. The action is chosen by rules, not by a model."
+      },
+      {
+        "id": "memory",
+        "label": "The memory layer",
+        "focus": [
+          "patterns",
+          "decisions",
+          "runbook",
+          "respond"
+        ],
+        "note": "Vectors, trust ledger and audit log are one store \u2014 no vector-DB to operational-DB sync."
+      },
+      {
+        "id": "aws",
+        "label": "Where AWS is used",
+        "focus": [
+          "decide",
+          "bedrock"
+        ],
+        "note": "Titan embeds the signature. Converse writes the explanation after the action is already decided."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "bedrock",
+      "type": "cloud",
+      "label": "AWS Bedrock",
+      "sublabel": "Titan v2 embeds \u00b7 Nova Micro explains",
+      "tag": "the model never decides",
+      "pos": [
+        600,
+        70
+      ],
+      "size": [
+        240,
+        70
+      ]
+    },
+    {
+      "id": "signals",
+      "type": "external",
+      "label": "Incident sources",
+      "sublabel": "Airflow \u00b7 BigQuery \u00b7 dbt \u00b7 CockroachDB",
+      "tag": "simulated, authentic shapes",
+      "pos": [
+        40,
+        270
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "console",
+      "type": "frontend",
+      "label": "Demo console",
+      "sublabel": "Flask on Vercel \u00b7 us-east-1",
+      "pos": [
+        310,
+        270
+      ],
+      "size": [
+        170,
+        72
+      ]
+    },
+    {
+      "id": "decide",
+      "type": "backend",
+      "label": "decide.py",
+      "sublabel": "embed \u2192 cosine top-k \u2192 deterministic rule matrix",
+      "tag": "Lambda-shaped",
+      "pos": [
+        560,
+        270
+      ],
+      "size": [
+        320,
+        72
+      ]
+    },
+    {
+      "id": "patterns",
+      "type": "database",
+      "label": "incident_patterns",
+      "sublabel": "VECTOR(512) C-SPANN + trust ledger",
+      "tag": "CockroachDB Cloud",
+      "pos": [
+        1010,
+        270
+      ],
+      "size": [
+        230,
+        72
+      ]
+    },
+    {
+      "id": "runbook",
+      "type": "database",
+      "label": "runbook",
+      "sublabel": "a VIEW \u2014 self-writing docs",
+      "tag": "CockroachDB Cloud",
+      "pos": [
+        1340,
+        270
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "decisions",
+      "type": "database",
+      "label": "agent_decisions",
+      "sublabel": "audit log \u00b7 memory_enabled flag",
+      "tag": "CockroachDB Cloud",
+      "pos": [
+        560,
+        460
+      ],
+      "size": [
+        320,
+        68
+      ]
+    },
+    {
+      "id": "respond",
+      "type": "backend",
+      "label": "respond.py \u00b7 teach.py",
+      "sublabel": "trust ledger, promote pattern",
+      "pos": [
+        1010,
+        460
+      ],
+      "size": [
+        230,
+        72
+      ]
+    },
+    {
+      "id": "ccloud",
+      "type": "external",
+      "label": "ccloud + Agent Skill",
+      "sublabel": "analyzing-range-distribution",
+      "tag": "beat 6 only",
+      "pos": [
+        1340,
+        460
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "human",
+      "type": "external",
+      "label": "On-call human",
+      "sublabel": "approve \u00b7 modify \u00b7 reject \u00b7 teach",
+      "pos": [
+        1010,
+        640
+      ],
+      "size": [
+        230,
+        68
+      ]
+    }
+  ],
+  "boundaries": [],
+  "connections": [
+    {
+      "id": "signals-console",
+      "from": "signals",
+      "to": "console",
+      "label": "8 incidents"
+    },
+    {
+      "id": "console-decide",
+      "from": "console",
+      "to": "decide",
+      "label": "decide",
+      "variant": "emphasis"
+    },
+    {
+      "id": "decide-bedrock",
+      "from": "decide",
+      "to": "bedrock",
+      "label": "embed + explain"
+    },
+    {
+      "id": "decide-patterns",
+      "from": "decide",
+      "to": "patterns",
+      "label": "match",
+      "variant": "emphasis"
+    },
+    {
+      "id": "decide-decisions",
+      "from": "decide",
+      "to": "decisions",
+      "label": "record",
+      "labelDy": 46
+    },
+    {
+      "id": "patterns-runbook",
+      "from": "patterns",
+      "to": "runbook",
+      "label": "VIEW"
+    },
+    {
+      "id": "human-respond",
+      "from": "human",
+      "to": "respond",
+      "label": "responds"
+    },
+    {
+      "id": "respond-patterns",
+      "from": "respond",
+      "to": "patterns",
+      "label": "trust ledger",
+      "variant": "emphasis"
+    },
+    {
+      "id": "respond-ccloud",
+      "from": "respond",
+      "to": "ccloud",
+      "label": "on approval"
+    }
+  ]
+}

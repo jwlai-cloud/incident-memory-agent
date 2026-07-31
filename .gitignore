@@ -20,3 +20,8 @@ __pycache__/
 
 # cluster CA: supplied via the COCKROACH_CA_PEM env var instead
 certs/
+
+# demo video capture output — local only, never pushed
+capture/
+*.mp4
+*.webm
