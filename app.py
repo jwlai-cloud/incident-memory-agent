@@ -62,29 +62,65 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 # so Flask's default module-relative lookup is not something to rely on.
 app = Flask(__name__, template_folder=os.path.join(_ROOT, "templates"))
 
-# Best-effort abuse guard for the public demo URL. Judges must be able to click the
-# beats without credentials, so this is a rate limit rather than auth. It is
-# per-instance memory, so on serverless it bounds a single warm instance, not the
-# fleet — the durable backstop is an AWS budget cap on the Bedrock key. Costs are
-# small by construction (Titan + Nova Micro, embeddings lru_cached), so this exists
-# to stop state thrash spoiling the next visitor's run more than to stop spend.
+# --- abuse guards for the public demo URL -----------------------------------------
+# Judges must be able to click the beats without credentials, so this is rate limiting
+# rather than auth. Two layers, because they fail differently:
+#
+#   burst  — per-instance memory. Cheap, catches hammering, but on serverless each
+#            instance has its own copy and a cold start wipes it. Not a real ceiling.
+#   daily  — a counter in CockroachDB. Durable, shared across every instance, and the
+#            actual cap on how much Bedrock a stranger can spend. Applied only to the
+#            endpoints that invoke a model.
+#
+# An AWS budget action is the slow backstop underneath both (billing data lags hours),
+# so it cannot be the gate — this is.
 _HITS: dict[str, list[float]] = {}
-WRITE_LIMIT = int(os.environ.get("WRITE_LIMIT_PER_MIN", "20"))
+BURST_LIMIT = int(os.environ.get("WRITE_LIMIT_PER_MIN", "20"))
+DAILY_GLOBAL = int(os.environ.get("MODEL_CALLS_PER_DAY", "500"))     # ~60 full demo runs
+DAILY_PER_IP = int(os.environ.get("MODEL_CALLS_PER_DAY_PER_IP", "100"))
+MODEL_ENDPOINTS = {"/api/reset", "/api/decide", "/api/teach"}  # these call Bedrock
+
+
+def _bump(cur, bucket: str) -> int:
+    """Atomically increment today's counter and return the new value."""
+    cur.execute(
+        "INSERT INTO usage_counters (day, bucket, n) VALUES (current_date(), %s, 1) "
+        "ON CONFLICT (day, bucket) DO UPDATE SET n = usage_counters.n + 1 RETURNING n",
+        (bucket,),
+    )
+    return cur.fetchone()["n"]
 
 
 @app.before_request
-def _rate_limit():
+def _guard():
     if request.method != "POST":
         return None
-    import time
     ip = (request.headers.get("x-forwarded-for", "") or request.remote_addr or "?").split(",")[0].strip()
+
+    import time
     now = time.time()
     recent = [t for t in _HITS.get(ip, []) if now - t < 60]
-    if len(recent) >= WRITE_LIMIT:
-        return jsonify(ok=False, error=f"Rate limit: {WRITE_LIMIT} actions per minute. "
-                                      "Wait a moment and try again."), 429
+    if len(recent) >= BURST_LIMIT:
+        return jsonify(ok=False, error=f"Slow down — {BURST_LIMIT} actions per minute."), 429
     recent.append(now)
     _HITS[ip] = recent
+
+    if request.path not in MODEL_ENDPOINTS:
+        return None
+    try:
+        with db() as conn, conn.cursor() as cur:
+            per_ip = _bump(cur, f"ip:{ip}")
+            total = _bump(cur, "global")
+            conn.commit()
+    except Exception:  # never let the meter itself take the demo down
+        app.logger.exception("usage counter unavailable; allowing request")
+        return None
+    if per_ip > DAILY_PER_IP:
+        return jsonify(ok=False, error=f"Daily limit reached for this address "
+                                       f"({DAILY_PER_IP} model-backed actions). Resets at UTC midnight."), 429
+    if total > DAILY_GLOBAL:
+        return jsonify(ok=False, error=f"The demo's shared daily budget ({DAILY_GLOBAL} model-backed "
+                                       "actions) is spent. Resets at UTC midnight."), 429
     return None
 
 # The taught pattern's content is the human's worked example. Pre-filled so the
