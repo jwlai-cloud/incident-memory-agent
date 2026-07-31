@@ -16,6 +16,17 @@ from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, jsonify, render_template, request
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
+
+# `sslmode=verify-full` makes libpq look for ~/.postgresql/root.crt, which exists on a
+# developer machine (the Cloud console tells you to download it) but not in a serverless
+# sandbox — the connection fails there with "root certificate file ... does not exist".
+# CockroachDB Cloud serves a publicly-trusted certificate, so `sslrootcert=system` keeps
+# full verification while using the OS trust store. Normalised here, before the scripts
+# are imported, so every module that reads COCKROACH_URL gets the corrected value.
+_url = os.environ.get("COCKROACH_URL", "")
+if _url and "sslrootcert=" not in _url:
+    os.environ["COCKROACH_URL"] = _url + ("&" if "?" in _url else "?") + "sslrootcert=system"
+
 import ccloud_wrapper  # noqa: E402
 import decide  # noqa: E402
 import respond  # noqa: E402
