@@ -19,13 +19,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scr
 
 # `sslmode=verify-full` makes libpq look for ~/.postgresql/root.crt, which exists on a
 # developer machine (the Cloud console tells you to download it) but not in a serverless
-# sandbox — the connection fails there with "root certificate file ... does not exist".
-# CockroachDB Cloud serves a publicly-trusted certificate, so `sslrootcert=system` keeps
-# full verification while using the OS trust store. Normalised here, before the scripts
-# are imported, so every module that reads COCKROACH_URL gets the corrected value.
+# sandbox — connections there fail with "root certificate file ... does not exist".
+# `sslrootcert=system` does NOT work either: CockroachDB Cloud signs with its own CA, not
+# a publicly-trusted one, so the OS trust store rejects it ("certificate verify failed").
+# So the cluster CA travels with the code. It is a public certificate — no private key —
+# fetched from the same unauthenticated URL the Cloud console gives you. Normalised here,
+# before the scripts are imported, so every module reading COCKROACH_URL is corrected.
+_CA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certs", "cockroach-ca.crt")
 _url = os.environ.get("COCKROACH_URL", "")
-if _url and "sslrootcert=" not in _url:
-    os.environ["COCKROACH_URL"] = _url + ("&" if "?" in _url else "?") + "sslrootcert=system"
+if _url and "sslrootcert=" not in _url and os.path.exists(_CA):
+    os.environ["COCKROACH_URL"] = _url + ("&" if "?" in _url else "?") + f"sslrootcert={_CA}"
 
 import ccloud_wrapper  # noqa: E402
 import decide  # noqa: E402
@@ -86,6 +89,17 @@ def db():
 def _q(cur, sql, args=()):
     cur.execute(sql, args)
     return cur.fetchall()
+
+
+@app.errorhandler(Exception)
+def _json_errors(e):
+    """Return the failure as JSON. A blank 500 tells a judge nothing, and tells us
+    nothing either — the UI surfaces this text in its toast."""
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return jsonify(ok=False, error=e.description), e.code
+    app.logger.exception("unhandled")
+    return jsonify(ok=False, error=f"{type(e).__name__}: {e}"), 500
 
 
 @app.get("/")
