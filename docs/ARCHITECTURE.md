@@ -24,7 +24,8 @@ both the vectors and the structured trust/audit ledger with no replication lag.
 | Teach | `scripts/teach.py` | Escalation → new pattern (`source='promoted'`), embedded from the signal so cousins match. |
 | Beat-6 execution | `scripts/ccloud_wrapper.py` | Runs the `analyzing-range-distribution` Agent Skill's read-only diagnostic against the agent's own memory tables; captures JSON into the decision. |
 | Reset / calibrate | `scripts/reset_demo.py`, `scripts/smoke_test.py` | Restore a clean baseline; measure real embedding distances and the counterfactual. |
-| Demo console | `app.py`, `templates/index.html` | Flask layer over the scripts: guided 7-beat rail, incident timeline, trust/runbook panel, live-SQL proof panel. No business logic of its own. |
+| Operator dashboard | `app.py`, `templates/dashboard.html` | The primary view at `/`: per-source health, a queue ordered by what needs a human, asset-first incident rows, memory panel, and record-level provenance for each incident. |
+| Guided console | `templates/index.html` | Flask layer over the scripts: guided 7-beat rail, incident timeline, trust/runbook panel, live-SQL proof panel. No business logic of its own. |
 
 ## Data model (CockroachDB — `schema/schema.sql`)
 

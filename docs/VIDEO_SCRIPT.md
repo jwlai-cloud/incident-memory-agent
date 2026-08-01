@@ -1,6 +1,6 @@
 # Demo video — shot-by-shot script
 
-**Target:** 2:50, hard cap 3:00. **Source:** https://incident-memory-agent.vercel.app
+**Target:** 2:50, hard cap 3:00. **Source:** https://incident-memory-agent.vercel.app (the operator dashboard)
 **Capture:** Playwright driving the live production console (`capture/` — gitignored).
 
 Latency is measured in production, so the cut is built around real waits rather than
@@ -118,7 +118,9 @@ guided view playing.
 - **Beat 6 fallback:** if the live skill call is slow, the JSON is already captured in the
   decision record — show that instead of waiting. Attempt live first.
 - **Don't narrate the rate limit or the daily cap.** True, but not the story.
-- **Say "simulated incidents" once**, in beat 1 or the end card. Declared, not hidden.
+- **Frame it accurately, early.** The incident *stream* is generated for the demo; the
+  dashboard, vector search, decisions and ledger are live. Say that once, near the start,
+  and let the record view carry the proof — don't label the product "simulated".
 
 ## Consistency check before publishing
 

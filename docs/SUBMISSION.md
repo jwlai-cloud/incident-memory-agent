@@ -1,6 +1,6 @@
 # Devpost submission — Mimir (incident-memory-agent)
 
-**Live demo:** https://incident-memory-agent.vercel.app
+**Live demo:** https://incident-memory-agent.vercel.app (guided walkthrough at `/demo`)
 **Repo:** https://github.com/jwlai-cloud/incident-memory-agent
 **Tagline:** *Mimir — consult what survived.*
 
@@ -162,8 +162,9 @@ is exactly what gets fed to the reasoning call on every future match.
 - **CockroachDB CDC as the production trigger**: `monitored_signals` insert → changefeed
   → Lambda, instead of the demo's explicit invoke.
 - **Per-session state**, so concurrent reviewers don't share one demo.
-- **Real adapters** behind the existing interface — the demo reads a simulated signal
-  stream, and we say so plainly rather than implying a production fleet.
+- **Real adapters** behind the existing interface. The dashboard, vector search, trust
+  ledger and audit log are real; the incident stream that feeds them is generated, and
+  each incident exposes its stored row so that claim is checkable rather than asserted.
 - **Trust decay**: a pattern unconfirmed for months should lose standing, not coast on
   an old streak.
 
