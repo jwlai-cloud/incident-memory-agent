@@ -165,7 +165,14 @@ def _json_errors(e):
 
 
 @app.get("/")
-def index():
+def dashboard():
+    """The operator view — what an on-call engineer would actually keep open."""
+    return render_template("dashboard.html", teach=TEACH_DEFAULTS)
+
+
+@app.get("/demo")
+def demo_console():
+    """The original guided console. Kept as a verified fallback."""
     return render_template("index.html", teach=TEACH_DEFAULTS)
 
 
