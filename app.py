@@ -181,7 +181,7 @@ def state():
     """Everything the page renders, in one round trip."""
     with db() as conn, conn.cursor() as cur:
         signals = _q(cur, """
-            SELECT s.id, s.source_system, s.signal_type, s.asset, s.observed_at,
+            SELECT s.id, s.source_system, s.signal_type, s.asset, s.observed_at, s.payload,
                    s.payload->'demo'->>'id' AS demo_id, s.payload->'demo'->>'beat' AS beat,
                    d.id AS decision_id, d.action, d.similarity, d.reasoning,
                    d.human_response, d.memory_enabled, p.label AS matched_label,

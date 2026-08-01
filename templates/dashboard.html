@@ -80,8 +80,34 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:0 2
 .count{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--ink-2)}
 .count.crit{background:var(--red-bg);border-color:transparent;color:var(--red)}
 
+/* per-source health strip */
+.systems{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:900px){.systems{grid-template-columns:repeat(2,1fr)}}
+.sys{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 14px;
+  display:flex;align-items:center;gap:9px;box-shadow:var(--shadow)}
+.sysdot{width:8px;height:8px;border-radius:50%;flex:none}
+.sys.ok .sysdot{background:var(--green)} .sys.warn .sysdot{background:var(--amber)} .sys.crit .sysdot{background:var(--red)}
+.sysname{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.syscount{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.sys.crit .syscount{color:var(--red);font-weight:600}
+
+/* incident board — the failing asset is the identity a data engineer recognises */
+.asset{font-family:var(--mono);font-size:13px;font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis}
+.sigtype{font-size:11px;color:var(--ink-3)}
+.srcchip{font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:5px;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+.s-airflow{color:#0B7285;border-color:#B7E1E8;background:#EAF7F9}
+.s-bigquery{color:#2F6FDD;border-color:#C6D9F7;background:#EEF4FD}
+.s-dbt{color:#B14A17;border-color:#F3CFB8;background:#FDF1EA}
+.s-cockroachdb{color:#5B3FB5;border-color:#D3C9F0;background:#F2EFFC}
+:root[data-theme="dark"] .s-airflow,:root[data-theme="dark"] .s-bigquery,
+:root[data-theme="dark"] .s-dbt,:root[data-theme="dark"] .s-cockroachdb{background:var(--surface-2);border-color:var(--line)}
+
 /* departure board */
-table{width:100%;border-collapse:collapse}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+/* fixed columns: status must never be pushed off the right edge */
+col.c-asset{width:30%} col.c-src{width:12%} col.c-why{width:34%}
+col.c-status{width:15%} col.c-age{width:9%}
 th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--ink-3);font-weight:500;padding:9px 14px;border-bottom:1px solid var(--line-soft);background:var(--surface-2)}
 td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
@@ -95,10 +121,10 @@ tr.proposed  .rowflag i{background:var(--amber)}
 tr.auto_resolved .rowflag i{background:var(--green)}
 .iid{font-family:var(--mono);font-size:13px;font-weight:600}
 .isys{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
-.iwhy{font-size:12.5px;color:var(--ink-2);max-width:460px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iwhy{font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* status word, board-style: wide tracking, no icon needed but colour is never alone */
-.st{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  padding:4px 10px;border-radius:5px;white-space:nowrap;display:inline-block;min-width:104px;text-align:center}
+.st{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:4px 8px;border-radius:5px;white-space:nowrap;display:inline-block;width:100%;max-width:104px;text-align:center}
 .st-escalated{color:var(--red);background:var(--red-bg)}
 .st-proposed{color:var(--amber);background:var(--amber-bg)}
 .st-auto_resolved{color:var(--green);background:var(--green-bg)}
@@ -110,6 +136,8 @@ tr.auto_resolved .rowflag i{background:var(--green)}
 .dl:first-child{margin-top:0}
 .drawer pre{font-family:var(--mono);font-size:11.5px;margin:0;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
 .acts{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+.prov{margin-top:13px;padding-top:12px;border-top:1px dashed var(--line)}
+.prov pre{max-height:220px;overflow:auto}
 .act{font-family:var(--mono);font-size:11.5px;padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
 .act:hover{border-color:var(--brand);color:var(--brand)}
 .act.primary{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
@@ -182,7 +210,7 @@ details.hood summary{padding:13px 17px;font-family:var(--mono);font-size:12px;le
 <header>
   <span class="brand">◈ Mimir</span>
   <span class="brandsub">consult what survived</span>
-  <span class="simchip">simulated incidents · real payload shapes · <b>live CockroachDB</b></span>
+  <span class="simchip">live <b>CockroachDB</b> · live <b>Bedrock</b> · demo incident stream</span>
   <span class="spacer"></span>
   <button class="tbtn" id="theme">theme</button>
 </header>
@@ -199,6 +227,7 @@ details.hood summary{padding:13px 17px;font-family:var(--mono);font-size:12px;le
 
 <div class="wrap">
   <div class="kpis" id="kpis"></div>
+  <div class="systems" id="systems"></div>
 
   <div class="cols">
     <div>
@@ -294,6 +323,7 @@ function render(){
       <div class="v">${v}</div><div class="s">${sub}</div></div>`).join('');
 
   need.sort((a,b)=> (a.action==='escalated'?0:1) - (b.action==='escalated'?0:1));
+  $('#systems').innerHTML = systems(s);
   $('#needcount').textContent=need.length;
   $('#allcount').textContent=s.length;
   $('#patcount').textContent=STATE.runbook.length;
@@ -330,8 +360,11 @@ const bar=(label,v,color)=> v===null?'':
    <div class="track"><div class="fill" style="width:${v}%;background:${color}"></div></div></div>`;
 
 function board(rows){
-  return `<table><thead><tr><th class="rowflag"></th><th>incident</th><th>source</th>
-    <th>what the agent found</th><th>status</th><th></th></tr></thead><tbody>`+
+  return `<table>
+    <colgroup><col style="width:3px"><col class="c-asset"><col class="c-src">
+      <col class="c-why"><col class="c-status"><col class="c-age"></colgroup>
+    <thead><tr><th class="rowflag"></th><th>failing asset</th><th>source</th>
+    <th>what the agent found</th><th>status</th><th>age</th></tr></thead><tbody>`+
     rows.map(s=>{
       const a=s.action||'none';
       const why=s.matched_label?('matched '+esc(s.matched_label))
@@ -339,12 +372,35 @@ function board(rows){
       const det = OPEN===s.demo_id? `<tr class="drawer"><td colspan="6">${detail(s)}</td></tr>`:'';
       return `<tr class="${a}" onclick="toggle('${esc(s.demo_id)}')">
         <td class="rowflag"><i></i></td>
-        <td class="iid">${esc(s.demo_id)}</td>
-        <td class="isys">${esc(s.source_system)}</td>
+        <td><span class="asset">${esc(s.asset)}</span>
+            <span class="sigtype">${esc((s.signal_type||'').replace(/_/g,' '))}</span></td>
+        <td><span class="srcchip s-${esc(s.source_system)}">${esc(s.source_system)}</span></td>
         <td class="iwhy">${why}</td>
         <td><span class="st st-${a}">${LABEL[a]}</span></td>
-        <td class="sim">${s.similarity?(+s.similarity).toFixed(2):''}</td></tr>${det}`;
+        <td class="sim">${ago(s.observed_at)}</td></tr>${det}`;
     }).join('')+`</tbody></table>`;
+}
+
+// data teams read recency, not absolute timestamps
+function ago(ts){
+  if(!ts) return '';
+  const m = Math.max(0, Math.round((Date.now() - new Date(ts).getTime())/60000));
+  if(m < 60) return m + 'm';
+  const h = Math.round(m/60); return h < 48 ? h + 'h' : Math.round(h/24) + 'd';
+}
+
+// per-source health — "what's broken in Airflow?" is the first question a data team asks
+function systems(sigs){
+  const order=['airflow','bigquery','dbt','cockroachdb'];
+  return order.map(sys=>{
+    const mine=sigs.filter(x=>x.source_system===sys);
+    const bad=mine.filter(x=>x.action==='escalated').length;
+    const rev=mine.filter(x=>x.action==='proposed').length;
+    const cls = bad? 'crit' : rev? 'warn' : 'ok';
+    return `<div class="sys ${cls}"><span class="sysdot"></span>
+      <span class="sysname">${sys}</span>
+      <span class="syscount">${mine.length? (bad? bad+' escalated' : rev? rev+' to review' : 'clear') : 'no signals'}</span></div>`;
+  }).join('');
 }
 
 function detail(s){
@@ -359,12 +415,31 @@ function detail(s){
            `<button class="act" onclick="event.stopPropagation();modifyThen('${s.decision_id}')">Modify</button>`+
            `<button class="act" onclick="event.stopPropagation();respond('${s.decision_id}','rejected')">Reject</button>`;
   } else if(s.human_response) acts=`<span class="sim">human responded: ${esc(s.human_response)}</span>`;
+  const prov = `<div class="prov" id="prov-${esc(s.demo_id)}" hidden>
+      <div class="dl">monitored_signals row</div>
+      <pre>id            ${esc(s.id)}
+observed_at   ${esc(s.observed_at)}
+source_system ${esc(s.source_system)}
+signal_type   ${esc(s.signal_type)}</pre>
+      <div class="dl">stored payload — the upstream error, exactly as recorded</div>
+      <pre>${esc(JSON.stringify(s.payload?.artifact ?? {}, null, 2))}</pre>
+      ${s.decision_id?`<div class="dl">agent_decisions row</div><pre>id ${esc(s.decision_id)}${
+        s.matched_pattern_id?`\nmatched_pattern_id ${esc(s.matched_pattern_id)}`:''}${
+        s.similarity?`\nsimilarity ${(+s.similarity).toFixed(4)}`:''}</pre>`:''}
+    </div>`;
   return `<div class="dl">asset</div><pre>${esc(s.asset)}</pre>
     <div class="dl">agent reasoning</div><pre>${esc(s.reasoning||'— not assessed —')}</pre>`+
     (s.matched_label?`<div class="dl">matched pattern</div><pre>${esc(s.matched_label)} · risk ${esc(s.risk_level)} · ${esc(s.remediation_channel)}${s.skill_ref?' · '+esc(s.skill_ref):''}</pre>`:'')+
-    `<div class="acts" onclick="event.stopPropagation()">${acts}</div>`;
+    `<div class="acts" onclick="event.stopPropagation()">${acts}
+      <button class="act" onclick="event.stopPropagation();showProv('${esc(s.demo_id)}',this)">Show the record</button>
+     </div>` + prov;
 }
 function toggle(id){ OPEN = OPEN===id?null:id; render(); }
+// provenance: prove the incident is a real row, not a fixture the page invented
+function showProv(id, btn){
+  const el = document.getElementById('prov-'+id); if(!el) return;
+  el.hidden = !el.hidden; btn.textContent = el.hidden ? 'Show the record' : 'Hide the record';
+}
 
 /* ---- actions ---- */
 async function run(fn,msg,okMsg){ if(BUSY)return; BUSY=true; steps(); toast(msg,true);
