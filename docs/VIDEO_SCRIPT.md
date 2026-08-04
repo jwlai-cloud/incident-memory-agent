@@ -43,8 +43,9 @@ guided view playing.
 
 **Visual:** click **Run with memory ON**. Rows flip to blue "propose". Rail drains to 38%.
 
-> "Now the same stream, with memory. Five of the eight match a known pattern instantly —
-> cosine search over a vector index — and come back with a proposed fix and a cited
+> "Now the same stream, with memory. Each incident is embedded by Amazon Bedrock — Titan
+> Text v2 — and matched by cosine search over CockroachDB's vector index. Five of the
+> eight hit a known pattern instantly, and come back with a proposed fix and a cited
 > precedent. A hundred percent becomes thirty-eight."
 
 **Callout overlay:** `100% → 38%` on the rail as it animates.
@@ -100,7 +101,8 @@ guided view playing.
 
 **Visual:** scroll the "Backed by CockroachDB" panel — live SQL and results.
 
-> "Every number you just saw is a live query against CockroachDB. Vector search, the trust
+> "Every number you just saw is a live query against CockroachDB, and every vector a live
+> call to Bedrock in us-east-1. Vector search, the trust
 > ledger, and the audit log — one store, so memory survives the incident it's remembering.
 > That's Mimir."
 
@@ -121,6 +123,12 @@ guided view playing.
 - **Frame it accurately, early.** The incident *stream* is generated for the demo; the
   dashboard, vector search, decisions and ledger are live. Say that once, near the start,
   and let the record view carry the proof — don't label the product "simulated".
+
+- **Name AWS out loud, not only in the docs.** This is a CockroachDB **×AWS** challenge and
+  a judge watching the video may never open the repo. Bedrock/Titan must be named on the
+  memory-on beat, Bedrock + the Lambda shape + "the model never picks the action" on the
+  architecture beat, and Bedrock again on the close. The first cut named neither AWS nor
+  Bedrock once in thirteen beats — a scoring hole invisible from the written story.
 
 ## Consistency check before publishing
 
