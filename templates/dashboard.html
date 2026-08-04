@@ -113,6 +113,8 @@ th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.1em;te
 td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
 tbody tr{cursor:pointer;transition:background .15s}
 tbody tr:hover{background:var(--surface-2)}
+/* an outline on a <tr> renders unreliably, so inset it and back it with the hover fill */
+tbody tr:focus-visible{background:var(--surface-2);outline:2px solid var(--brand);outline-offset:-2px}
 tbody tr:last-child td{border-bottom:none}
 .rowflag{width:3px;padding:0}
 .rowflag i{display:block;width:3px;height:34px;border-radius:2px;background:var(--line)}
@@ -370,7 +372,11 @@ function board(rows){
       const why=s.matched_label?('matched '+esc(s.matched_label))
         :(a==='escalated'?'no precedent — needs diagnosis':(a==='none'?'not yet assessed':esc((s.reasoning||'').slice(0,80))));
       const det = OPEN===s.demo_id? `<tr class="drawer"><td colspan="6">${detail(s)}</td></tr>`:'';
-      return `<tr class="${a}" onclick="toggle('${esc(s.demo_id)}')">
+      // the whole row is the control, so it needs to behave like one for the keyboard too:
+      // the drawer holds the decision buttons and the provenance record.
+      const open = OPEN===s.demo_id;
+      return `<tr class="${a}" data-demo="${esc(s.demo_id)}" tabindex="0"
+                  role="button" aria-expanded="${open}">
         <td class="rowflag"><i></i></td>
         <td><span class="asset">${esc(s.asset)}</span>
             <span class="sigtype">${esc((s.signal_type||'').replace(/_/g,' '))}</span></td>
@@ -435,6 +441,21 @@ signal_type   ${esc(s.signal_type)}</pre>
      </div>` + prov;
 }
 function toggle(id){ OPEN = OPEN===id?null:id; render(); }
+
+// Delegated, so rows re-rendered by render() keep working without rebinding. Keyboard
+// activation only fires when the row itself has focus — Enter on a button inside the
+// open drawer must not collapse the drawer out from under it.
+document.addEventListener('click', e => {
+  const row = e.target.closest?.('tr[data-demo]');
+  if (row) toggle(row.dataset.demo);
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest?.('tr[data-demo]');
+  if (!row || e.target !== row) return;
+  e.preventDefault();                       // Space would otherwise scroll the page
+  toggle(row.dataset.demo);
+});
 // provenance: prove the incident is a real row, not a fixture the page invented
 function showProv(id, btn){
   const el = document.getElementById('prov-'+id); if(!el) return;
