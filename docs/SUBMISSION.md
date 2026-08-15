@@ -155,7 +155,7 @@ We took the same position by construction: `incident_patterns` only grows throug
 confirmed human teach-moment, and `root_cause` is always the human's own words — which
 is exactly what gets fed to the reasoning call on every future match.
 
-## What's next
+## What's next for Mimir — incident memory that outlives the incident
 
 - **Move embedding calls out of open transactions** — fine at demo scale, wrong under
   real concurrency.
