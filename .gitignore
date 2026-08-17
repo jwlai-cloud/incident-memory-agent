@@ -25,3 +25,4 @@ certs/
 capture/
 *.mp4
 *.webm
+.DS_Store

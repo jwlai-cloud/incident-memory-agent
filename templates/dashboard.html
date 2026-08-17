@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mimir — incident memory</title>
+<style>
+:root{
+  --bg:#F5F6F8; --surface:#FFFFFF; --surface-2:#FAFBFC; --line:#E3E7ED; --line-soft:#EEF1F5;
+  --ink:#141A22; --ink-2:#4A5563; --ink-3:#8A94A2;
+  --brand:#8A6614; --brand-soft:#FBF3DF;
+  --red:#C4482F;   --red-bg:#FCEDE9;
+  --amber:#9A6B08; --amber-bg:#FDF3DF;
+  --green:#0A9179; --green-bg:#E6F5F1;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  --shadow:0 1px 2px rgba(20,26,34,.05), 0 1px 8px rgba(20,26,34,.04);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0C1016; --surface:#141A22; --surface-2:#1A212B; --line:#242D38; --line-soft:#1E2630;
+  --ink:#E4E9F0; --ink-2:#98A3B2; --ink-3:#5F6B7A;
+  --brand:#D9A441; --brand-soft:#2A2313;
+  --red:#E5674F; --red-bg:#2A1613; --amber:#D9A441; --amber-bg:#2A2313;
+  --green:#2FA98C; --green-bg:#10261F;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"]{
+  --bg:#0C1016; --surface:#141A22; --surface-2:#1A212B; --line:#242D38; --line-soft:#1E2630;
+  --ink:#E4E9F0; --ink-2:#98A3B2; --ink-3:#5F6B7A;
+  --brand:#D9A441; --brand-soft:#2A2313;
+  --red:#E5674F; --red-bg:#2A1613; --amber:#D9A441; --amber-bg:#2A2313;
+  --green:#2FA98C; --green-bg:#10261F;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:0 22px;
+  display:flex;align-items:center;gap:18px;height:58px;position:sticky;top:0;z-index:20}
+.brand{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand)}
+.brandsub{color:var(--ink-3);font-size:12.5px;font-style:italic}
+.simchip{font-family:var(--mono);font-size:11px;color:var(--ink-2);background:var(--surface-2);
+  border:1px solid var(--line);border-radius:999px;padding:4px 11px}
+.simchip b{color:var(--green);font-weight:600}
+.spacer{margin-left:auto}
+.tbtn{background:var(--surface);border:1px solid var(--line);color:var(--ink-2);border-radius:7px;
+  padding:5px 11px;font-family:var(--mono);font-size:11.5px}
+.tbtn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* status strip — the one honest sentence */
+.status{background:var(--surface);border-bottom:1px solid var(--line);padding:15px 22px;display:flex;align-items:center;gap:14px}
+.beacon{width:11px;height:11px;border-radius:50%;flex:none}
+.beacon.ok{background:var(--green);box-shadow:0 0 0 4px var(--green-bg)}
+.beacon.warn{background:var(--amber);box-shadow:0 0 0 4px var(--amber-bg)}
+.beacon.crit{background:var(--red);box-shadow:0 0 0 4px var(--red-bg);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 9px transparent}}
+.statustext{font-size:16px;font-weight:500}
+.statustext b{font-variant-numeric:tabular-nums}
+
+.wrap{max-width:1560px;margin:0 auto;padding:20px 22px 60px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.kpi .v{font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:5px;letter-spacing:-.02em}
+.kpi .s{font-size:11.5px;color:var(--ink-3);margin-top:1px}
+.kpi.crit .v{color:var(--red)} .kpi.good .v{color:var(--green)} .kpi.brandv .v{color:var(--brand)}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:18px}
+@media(max-width:1240px){.cols{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+.card>h2{margin:0;padding:13px 17px;border-bottom:1px solid var(--line-soft);font-size:12px;
+  font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-weight:600;
+  display:flex;align-items:center;gap:9px}
+.count{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--ink-2)}
+.count.crit{background:var(--red-bg);border-color:transparent;color:var(--red)}
+
+/* per-source health strip */
+.systems{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:900px){.systems{grid-template-columns:repeat(2,1fr)}}
+.sys{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 14px;
+  display:flex;align-items:center;gap:9px;box-shadow:var(--shadow)}
+.sysdot{width:8px;height:8px;border-radius:50%;flex:none}
+.sys.ok .sysdot{background:var(--green)} .sys.warn .sysdot{background:var(--amber)} .sys.crit .sysdot{background:var(--red)}
+.sysname{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.syscount{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.sys.crit .syscount{color:var(--red);font-weight:600}
+
+/* incident board — the failing asset is the identity a data engineer recognises */
+.asset{font-family:var(--mono);font-size:13px;font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis}
+.sigtype{font-size:11px;color:var(--ink-3)}
+.srcchip{font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:5px;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+.s-airflow{color:#0B7285;border-color:#B7E1E8;background:#EAF7F9}
+.s-bigquery{color:#2F6FDD;border-color:#C6D9F7;background:#EEF4FD}
+.s-dbt{color:#B14A17;border-color:#F3CFB8;background:#FDF1EA}
+.s-cockroachdb{color:#5B3FB5;border-color:#D3C9F0;background:#F2EFFC}
+:root[data-theme="dark"] .s-airflow,:root[data-theme="dark"] .s-bigquery,
+:root[data-theme="dark"] .s-dbt,:root[data-theme="dark"] .s-cockroachdb{background:var(--surface-2);border-color:var(--line)}
+
+/* departure board */
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+/* fixed columns: status must never be pushed off the right edge */
+col.c-asset{width:30%} col.c-src{width:12%} col.c-why{width:34%}
+col.c-status{width:15%} col.c-age{width:9%}
+th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500;padding:9px 14px;border-bottom:1px solid var(--line-soft);background:var(--surface-2)}
+td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tbody tr{cursor:pointer;transition:background .15s}
+tbody tr:hover{background:var(--surface-2)}
+/* an outline on a <tr> renders unreliably, so inset it and back it with the hover fill */
+tbody tr:focus-visible{background:var(--surface-2);outline:2px solid var(--brand);outline-offset:-2px}
+tbody tr:last-child td{border-bottom:none}
+.rowflag{width:3px;padding:0}
+.rowflag i{display:block;width:3px;height:34px;border-radius:2px;background:var(--line)}
+tr.escalated .rowflag i{background:var(--red)}
+tr.proposed  .rowflag i{background:var(--amber)}
+tr.auto_resolved .rowflag i{background:var(--green)}
+.iid{font-family:var(--mono);font-size:13px;font-weight:600}
+.isys{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.iwhy{font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* status word, board-style: wide tracking, no icon needed but colour is never alone */
+.st{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:4px 8px;border-radius:5px;white-space:nowrap;display:inline-block;width:100%;max-width:104px;text-align:center}
+.st-escalated{color:var(--red);background:var(--red-bg)}
+.st-proposed{color:var(--amber);background:var(--amber-bg)}
+.st-auto_resolved{color:var(--green);background:var(--green-bg)}
+.st-none{color:var(--ink-3);background:var(--surface-2)}
+.sim{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.drawer{background:var(--surface-2);border-bottom:1px solid var(--line-soft)}
+.drawer td{padding:14px 17px}
+.dl{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:11px 0 3px}
+.dl:first-child{margin-top:0}
+.drawer pre{font-family:var(--mono);font-size:11.5px;margin:0;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.acts{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+.prov{margin-top:13px;padding-top:12px;border-top:1px dashed var(--line)}
+.prov pre{max-height:220px;overflow:auto}
+.act{font-family:var(--mono);font-size:11.5px;padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.act:hover{border-color:var(--brand);color:var(--brand)}
+.act.primary{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
+
+/* comparison chart — the counterfactual as a metric a real system would track */
+.chart{padding:16px 17px}
+.bar{margin-bottom:13px}
+.barlab{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2);margin-bottom:5px}
+.barlab b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px}
+.track{height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line-soft)}
+.fill{height:100%;border-radius:5px;transition:width .8s cubic-bezier(.2,.7,.3,1)}
+.chartnote{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+
+.pat{padding:12px 17px;border-bottom:1px solid var(--line-soft)}
+.pat:last-child{border-bottom:none}
+.patname{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.pills{margin-top:5px}
+.pill{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;background:var(--surface-2);
+  border:1px solid var(--line);color:var(--ink-2);margin-right:4px;display:inline-block}
+.pill.new{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:600}
+.patmeta{display:flex;align-items:center;gap:8px;margin-top:6px;font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.tag-high{color:var(--red)} .tag-auto{color:var(--green);font-weight:600}
+.taught{background:var(--brand-soft);color:var(--brand);padding:1px 6px;border-radius:4px;font-weight:600}
+
+/* demo rail — deliberately demoted */
+.rail{position:fixed;left:0;top:58px;bottom:0;width:52px;background:var(--surface);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;padding-top:14px;gap:4px;z-index:15;transition:width .25s}
+.rail.open{width:262px;align-items:stretch;padding:14px 12px;overflow-y:auto}
+.railtoggle{background:none;border:1px solid var(--line);border-radius:8px;color:var(--ink-2);
+  padding:7px 9px;font-family:var(--mono);font-size:11px;white-space:nowrap;margin-bottom:8px}
+.rail.open .railtoggle{text-align:left}
+.rail:not(.open) .rlabel{display:none}
+.rstep{display:flex;gap:9px;align-items:flex-start;background:none;border:none;border-radius:8px;padding:7px 8px;
+  color:var(--ink);text-align:left;width:100%}
+.rail:not(.open) .rstep{justify-content:center;padding:7px 0}
+.rstep:hover:not(:disabled){background:var(--surface-2)}
+.rstep:disabled{opacity:.4;cursor:not-allowed}
+.rstep .rn{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);min-width:15px;padding-top:2px}
+.rstep.done .rn{color:var(--green)}
+.rstep.next{background:var(--brand-soft);box-shadow:inset 2px 0 0 var(--brand)}
+.rstep .rt{font-size:12.5px;line-height:1.3}
+.rstep .rs{display:block;font-size:10.5px;color:var(--ink-3)}
+body{padding-left:52px;transition:padding-left .25s}
+body.railopen{padding-left:262px}
+@media(max-width:900px){.rail{display:none} body{padding-left:0}}
+
+details.hood{background:var(--surface);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
+details.hood summary{padding:13px 17px;font-family:var(--mono);font-size:12px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-2);cursor:pointer;font-weight:600}
+.hoodbody{padding:0 17px 16px}
+.hoodq{font-size:12px;color:var(--ink-2);margin:12px 0 5px}
+.hoodbody pre{font-family:var(--mono);font-size:10.5px;background:var(--surface-2);border:1px solid var(--line-soft);
+  border-radius:7px;padding:9px 11px;overflow-x:auto;margin:0 0 7px;color:var(--ink-2)}
+.hoodbody table{font-size:11px}
+.hoodbody td,.hoodbody th{padding:5px 9px}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--ink);
+  color:var(--bg);padding:11px 20px;border-radius:9px;font-family:var(--mono);font-size:12.5px;
+  transition:transform .3s;z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.18);max-width:90vw}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:10px;height:10px;border:1.5px solid rgba(255,255,255,.35);
+  border-top-color:currentColor;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{color:var(--ink-3);font-size:12.5px;font-style:italic;padding:18px 17px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">◈ Mimir</span>
+  <span class="brandsub">consult what survived</span>
+  <span class="simchip">live <b>CockroachDB</b> · live <b>Bedrock</b> · demo incident stream</span>
+  <span class="spacer"></span>
+  <button class="tbtn" id="theme">theme</button>
+</header>
+
+<div class="status">
+  <span class="beacon ok" id="beacon"></span>
+  <span class="statustext" id="statustext">Loading incident state…</span>
+</div>
+
+<nav class="rail" id="rail" aria-label="Demo controls">
+  <button class="railtoggle" id="railtoggle">▶ <span class="rlabel">Run the demo</span></button>
+  <div id="steps"></div>
+</nav>
+
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+  <div class="systems" id="systems"></div>
+
+  <div class="cols">
+    <div>
+      <div class="card">
+        <h2>Your queue <span class="count crit" id="needcount">0</span></h2>
+        <div id="needs"></div>
+      </div>
+      <div class="card">
+        <h2>All incidents <span class="count" id="allcount">0</span></h2>
+        <div id="stream"></div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <h2>Effect of memory</h2>
+        <div class="chart" id="chart"></div>
+      </div>
+      <div class="card">
+        <h2>Memory <span class="count" id="patcount">0</span></h2>
+        <div id="patterns"></div>
+      </div>
+      <details class="hood">
+        <summary>Under the hood — live SQL</summary>
+        <div class="hoodbody" id="proof"><p class="empty">expand to run</p></div>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let STATE=null, OPEN=null, BUSY=false;
+const DONE=new Set();
+
+const STEPS=[
+  {id:'reset', t:'Reset',            s:'re-seed memory, re-inject'},
+  {id:'off',   t:'Memory OFF',       s:'the counterfactual'},
+  {id:'on',    t:'Memory ON',        s:'precedents cited'},
+  {id:'teach', t:'Teach',            s:'promote the escalation'},
+  {id:'poll',  t:'Pollinate',        s:'one lesson, three systems'},
+  {id:'skill', t:'CockroachDB skill',s:'ccloud diagnostic'},
+  {id:'trust', t:'Earn autonomy',    s:'5th approval'},
+];
+const LABEL={escalated:'escalate',proposed:'review',auto_resolved:'handled',none:'pending'};
+
+function toast(m,spin){const t=$('#toast');t.textContent='';
+  if(spin){const s=document.createElement('span');s.className='spin';t.append(s);}
+  t.append(document.createTextNode(m));t.classList.add('show');
+  if(!spin)setTimeout(()=>t.classList.remove('show'),3400);}
+
+async function api(p,b){const r=await fetch(p,b?{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(b)}:{});const j=await r.json();
+  if(!r.ok||j.ok===false)throw new Error(j.error||('HTTP '+r.status));return j;}
+
+async function refresh(){ STATE=await api('/api/state'); render(); }
+
+function render(){
+  const s=STATE.signals, decided=s.filter(x=>x.action);
+  const esc_=s.filter(x=>x.action==='escalated'), prop=s.filter(x=>x.action==='proposed');
+  const auto=s.filter(x=>x.action==='auto_resolved');
+  const need=[...esc_,...prop];
+
+  // Every figure below counts the SAME partition of decided incidents, so the status
+  // line and the tiles can never disagree:
+  //   unknown   = escalated with no matching pattern  -> needs diagnosis from scratch
+  //   review    = recognised, still awaiting a human  -> includes high-risk matches
+  //   handled   = auto-resolved under earned autonomy -> no human involved
+  const unknown = esc_.filter(x=>!x.matched_pattern_id);
+  const review  = [...esc_.filter(x=>x.matched_pattern_id), ...prop];
+  const recognised = decided.filter(x=>x.matched_pattern_id);
+  const pct = decided.length ? Math.round(100*recognised.length/decided.length) : 0;
+
+  const b=$('#beacon'), tx=$('#statustext');
+  b.className='beacon '+(unknown.length?'crit':review.length?'warn':'ok');
+  tx.innerHTML = !decided.length
+    ? 'No decisions yet — run the demo to stream incidents.'
+    : `<b>${unknown.length}</b> need diagnosis · <b>${review.length}</b> awaiting review · `+
+      `<b>${auto.length}</b> auto-handled · <b>${STATE.runbook.length}</b> patterns known`;
+
+  const autonomous = STATE.runbook.filter(p=>p.autonomy_granted).length;
+  $('#kpis').innerHTML = [
+    ['incidents today', s.length, 'across 4 systems',''],
+    ['need diagnosis', unknown.length, 'no precedent at all', unknown.length?'crit':''],
+    ['recognised from memory', pct+'%', 'matched a known pattern','good'],
+    ['patterns in memory', STATE.runbook.length, 'vector + trust ledger','brandv'],
+    ['earned autonomy', autonomous, 'granted by a human','brandv'],
+  ].map(([k,v,sub,cls])=>`<div class="kpi ${cls}"><div class="k">${k}</div>
+      <div class="v">${v}</div><div class="s">${sub}</div></div>`).join('');
+
+  need.sort((a,b)=> (a.action==='escalated'?0:1) - (b.action==='escalated'?0:1));
+  $('#systems').innerHTML = systems(s);
+  $('#needcount').textContent=need.length;
+  $('#allcount').textContent=s.length;
+  $('#patcount').textContent=STATE.runbook.length;
+  $('#needs').innerHTML = need.length? board(need) : '<p class="empty">Queue is clear — memory handled everything it recognised.</p>';
+  $('#stream').innerHTML = board(s);
+
+  // memory-off vs memory-on, as a tracked metric
+  const cf=Object.fromEntries(STATE.counterfactual.map(r=>[String(r.memory_enabled),r]));
+  const rate=r=>r?Math.round(100*r.escalated/r.n):null;
+  const off=rate(cf['false']), on=rate(cf['true']);
+  $('#chart').innerHTML = (off===null&&on===null)
+    ? '<p class="empty" style="padding:0">Run both modes to compare.</p>'
+    : bar('Memory off',off,'var(--red)')+bar('Memory on',on,'var(--green)')+
+      `<div class="chartnote">${off!==null&&on!==null
+        ? `Same eight incidents. Memory removes <b>${off-on}</b> points of human load.`
+        : 'Run the other mode to compare.'}</div>`;
+
+  $('#patterns').innerHTML = STATE.runbook.length? STATE.runbook.map(p=>{
+    const pills=(p.applies_to||[]).map((a,i)=>
+      `<span class="pill${p.source==='promoted'&&i>0?' new':''}">${esc(a)}</span>`).join('');
+    const aut=p.autonomy_granted?'<span class="tag-auto">autonomous</span>'
+      :(STATE.autonomy_asks.includes(p.id)
+        ? `<button class="act" style="padding:2px 8px;font-size:10px" onclick="grant('${p.id}')">grant autonomy</button>`
+        : `${p.approved_unchanged_count}/5 approvals`);
+    return `<div class="pat"><div class="patname">${esc(p.label)}</div>
+      <div class="pills">${pills}</div>
+      <div class="patmeta"><span class="${p.risk_level==='high'?'tag-high':''}">risk ${esc(p.risk_level)}</span>
+      ${p.source==='promoted'?'<span class="taught">taught live</span>':''}<span>${aut}</span></div></div>`;
+  }).join('') : '<p class="empty">No patterns seeded yet.</p>';
+}
+
+const bar=(label,v,color)=> v===null?'':
+  `<div class="bar"><div class="barlab"><span>${label}</span><b>${v}% escalated</b></div>
+   <div class="track"><div class="fill" style="width:${v}%;background:${color}"></div></div></div>`;
+
+function board(rows){
+  return `<table>
+    <colgroup><col style="width:3px"><col class="c-asset"><col class="c-src">
+      <col class="c-why"><col class="c-status"><col class="c-age"></colgroup>
+    <thead><tr><th class="rowflag"></th><th>failing asset</th><th>source</th>
+    <th>what the agent found</th><th>status</th><th>age</th></tr></thead><tbody>`+
+    rows.map(s=>{
+      const a=s.action||'none';
+      const why=s.matched_label?('matched '+esc(s.matched_label))
+        :(a==='escalated'?'no precedent — needs diagnosis':(a==='none'?'not yet assessed':esc((s.reasoning||'').slice(0,80))));
+      const det = OPEN===s.demo_id? `<tr class="drawer"><td colspan="6">${detail(s)}</td></tr>`:'';
+      // the whole row is the control, so it needs to behave like one for the keyboard too:
+      // the drawer holds the decision buttons and the provenance record.
+      const open = OPEN===s.demo_id;
+      return `<tr class="${a}" data-demo="${esc(s.demo_id)}" tabindex="0"
+                  role="button" aria-expanded="${open}">
+        <td class="rowflag"><i></i></td>
+        <td><span class="asset">${esc(s.asset)}</span>
+            <span class="sigtype">${esc((s.signal_type||'').replace(/_/g,' '))}</span></td>
+        <td><span class="srcchip s-${esc(s.source_system)}">${esc(s.source_system)}</span></td>
+        <td class="iwhy">${why}</td>
+        <td><span class="st st-${a}">${LABEL[a]}</span></td>
+        <td class="sim">${ago(s.observed_at)}</td></tr>${det}`;
+    }).join('')+`</tbody></table>`;
+}
+
+// data teams read recency, not absolute timestamps
+function ago(ts){
+  if(!ts) return '';
+  const m = Math.max(0, Math.round((Date.now() - new Date(ts).getTime())/60000));
+  if(m < 60) return m + 'm';
+  const h = Math.round(m/60); return h < 48 ? h + 'h' : Math.round(h/24) + 'd';
+}
+
+// per-source health — "what's broken in Airflow?" is the first question a data team asks
+function systems(sigs){
+  const order=['airflow','bigquery','dbt','cockroachdb'];
+  return order.map(sys=>{
+    const mine=sigs.filter(x=>x.source_system===sys);
+    const bad=mine.filter(x=>x.action==='escalated').length;
+    const rev=mine.filter(x=>x.action==='proposed').length;
+    const cls = bad? 'crit' : rev? 'warn' : 'ok';
+    return `<div class="sys ${cls}"><span class="sysdot"></span>
+      <span class="sysname">${sys}</span>
+      <span class="syscount">${mine.length? (bad? bad+' escalated' : rev? rev+' to review' : 'clear') : 'no signals'}</span></div>`;
+  }).join('');
+}
+
+function detail(s){
+  let acts='';
+  if(s.decision_id && !s.human_response){
+    if(s.action==='escalated' && !s.matched_pattern_id)
+      acts=`<button class="act primary" onclick="event.stopPropagation();doTeach('${s.decision_id}')">Diagnose &amp; teach</button>`;
+    else if(s.remediation_channel==='ccloud_skill')
+      acts=`<button class="act primary" onclick="event.stopPropagation();doSkill('${s.decision_id}')">Run CockroachDB skill</button>`+
+           `<button class="act" onclick="event.stopPropagation();respond('${s.decision_id}','approved_unchanged')">Approve</button>`;
+    else acts=`<button class="act primary" onclick="event.stopPropagation();respond('${s.decision_id}','approved_unchanged')">Approve unchanged</button>`+
+           `<button class="act" onclick="event.stopPropagation();modifyThen('${s.decision_id}')">Modify</button>`+
+           `<button class="act" onclick="event.stopPropagation();respond('${s.decision_id}','rejected')">Reject</button>`;
+  } else if(s.human_response) acts=`<span class="sim">human responded: ${esc(s.human_response)}</span>`;
+  const prov = `<div class="prov" id="prov-${esc(s.demo_id)}" hidden>
+      <div class="dl">monitored_signals row</div>
+      <pre>id            ${esc(s.id)}
+observed_at   ${esc(s.observed_at)}
+source_system ${esc(s.source_system)}
+signal_type   ${esc(s.signal_type)}</pre>
+      <div class="dl">stored payload — the upstream error, exactly as recorded</div>
+      <pre>${esc(JSON.stringify(s.payload?.artifact ?? {}, null, 2))}</pre>
+      ${s.decision_id?`<div class="dl">agent_decisions row</div><pre>id ${esc(s.decision_id)}${
+        s.matched_pattern_id?`\nmatched_pattern_id ${esc(s.matched_pattern_id)}`:''}${
+        s.similarity?`\nsimilarity ${(+s.similarity).toFixed(4)}`:''}</pre>`:''}
+    </div>`;
+  return `<div class="dl">asset</div><pre>${esc(s.asset)}</pre>
+    <div class="dl">agent reasoning</div><pre>${esc(s.reasoning||'— not assessed —')}</pre>`+
+    (s.matched_label?`<div class="dl">matched pattern</div><pre>${esc(s.matched_label)} · risk ${esc(s.risk_level)} · ${esc(s.remediation_channel)}${s.skill_ref?' · '+esc(s.skill_ref):''}</pre>`:'')+
+    `<div class="acts" onclick="event.stopPropagation()">${acts}
+      <button class="act" onclick="event.stopPropagation();showProv('${esc(s.demo_id)}',this)">Show the record</button>
+     </div>` + prov;
+}
+function toggle(id){ OPEN = OPEN===id?null:id; render(); }
+
+// Delegated, so rows re-rendered by render() keep working without rebinding. Keyboard
+// activation only fires when the row itself has focus — Enter on a button inside the
+// open drawer must not collapse the drawer out from under it.
+document.addEventListener('click', e => {
+  const row = e.target.closest?.('tr[data-demo]');
+  if (row) toggle(row.dataset.demo);
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest?.('tr[data-demo]');
+  if (!row || e.target !== row) return;
+  e.preventDefault();                       // Space would otherwise scroll the page
+  toggle(row.dataset.demo);
+});
+// provenance: prove the incident is a real row, not a fixture the page invented
+function showProv(id, btn){
+  const el = document.getElementById('prov-'+id); if(!el) return;
+  el.hidden = !el.hidden; btn.textContent = el.hidden ? 'Show the record' : 'Hide the record';
+}
+
+/* ---- actions ---- */
+async function run(fn,msg,okMsg){ if(BUSY)return; BUSY=true; steps(); toast(msg,true);
+  try{ const r=await fn(); await refresh(); toast(typeof okMsg==='function'?okMsg(r):okMsg); }
+  catch(e){ toast('✕ '+e.message); } BUSY=false; steps(); }
+const doTeach=id=>run(()=>api('/api/teach',{decision_id:id}),'Teaching the pattern…','✓ pattern taught — now pollinate');
+const doSkill=id=>run(()=>api('/api/ccloud',{decision_id:id,via:'sql'}),'Running the skill…',r=>'✓ '+r.skill_ref+' returned live range data');
+const grant  =id=>run(()=>api('/api/grant',{pattern_id:id}),'Granting autonomy…','✓ autonomous — one rejection revokes it');
+function modifyThen(id){ const t=prompt('What did you change?'); if(t&&t.trim()) respond(id,'modified',t.trim()); }
+const respond=(id,kind,txt)=>run(()=>api('/api/respond',{decision_id:id,response:kind,modified_text:txt}),
+  kind.replace('_',' ')+'…', r=> r.autonomy_ask?'★ five unchanged approvals — grant autonomy in Memory'
+    : r.autonomy_revoked?'✕ autonomy revoked':'✓ recorded · trust ledger updated');
+
+async function step(id){
+  const s=STEPS.find(x=>x.id===id);
+  await run(async ()=>{
+    if(id==='reset'){ await api('/api/reset',{}); OPEN=null; }
+    if(id==='off')   await api('/api/decide',{memory_enabled:false});
+    if(id==='on')    await api('/api/decide',{memory_enabled:true});
+    if(id==='teach'){ const x=(await api('/api/state')).signals.find(v=>v.demo_id==='novel_airflow'&&v.decision_id&&!v.matched_pattern_id&&v.action==='escalated');
+      if(!x) throw new Error('run Memory ON first'); await api('/api/teach',{decision_id:x.decision_id}); }
+    if(id==='poll'){ await api('/api/decide',{memory_enabled:true,demo_ids:['pollinate_bq','pollinate_dbt']});
+      const f=await api('/api/state');
+      for(const d of ['pollinate_bq','pollinate_dbt']){ const x=f.signals.find(v=>v.demo_id===d&&v.decision_id&&v.matched_pattern_id&&!v.human_response);
+        if(x) await api('/api/respond',{decision_id:x.decision_id,response:'approved_unchanged'}); } }
+    if(id==='skill'){ const x=STATE.signals.find(v=>v.remediation_channel==='ccloud_skill'&&v.decision_id);
+      if(!x) throw new Error('run Memory ON first'); await api('/api/ccloud',{decision_id:x.decision_id,via:'sql'}); }
+    if(id==='trust'){ const x=STATE.signals.find(v=>v.demo_id==='trust_repeat'&&v.decision_id&&!v.human_response);
+      if(!x) throw new Error('run Memory ON first'); await api('/api/respond',{decision_id:x.decision_id,response:'approved_unchanged'}); }
+    DONE.add(id);
+  }, s.t+'…', '✓ '+s.t);
+}
+function steps(){
+  $('#steps').innerHTML=STEPS.map((b,i)=>{
+    const done=DONE.has(b.id), next=!done&&STEPS.slice(0,i).every(x=>DONE.has(x.id));
+    return `<button class="rstep ${done?'done':''} ${next?'next':''}" ${BUSY?'disabled':''} onclick="step('${b.id}')"
+      title="${b.t}"><span class="rn">${done?'✓':i+1}</span>
+      <span class="rt rlabel">${b.t}<span class="rs">${b.s}</span></span></button>`;
+  }).join('');
+}
+$('#railtoggle').onclick=()=>{ $('#rail').classList.toggle('open'); document.body.classList.toggle('railopen'); };
+$('#theme').onclick=()=>{ const c=document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', c==='dark'?'light':'dark'); };
+document.querySelector('details.hood').addEventListener('toggle', async e=>{
+  if(!e.target.open) return;
+  try{ const p=await api('/api/proof');
+    $('#proof').innerHTML=p.queries.map(q=>{
+      if(q.error||!q.rows.length) return '';
+      const cols=Object.keys(q.rows[0]);
+      return `<div class="hoodq">${esc(q.title)}</div><pre>${esc(q.sql)}</pre>
+        <table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`+
+        q.rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(Array.isArray(r[c])?r[c].join(', '):r[c]??'—')}</td>`).join('')}</tr>`).join('')+
+        `</tbody></table>`;
+    }).join('');
+  }catch(err){ $('#proof').innerHTML='<p class="empty">'+esc(err.message)+'</p>'; }
+});
+
+steps(); refresh().catch(e=>toast('✕ '+e.message));
+</script>
+</body>
+</html>

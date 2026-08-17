@@ -9,7 +9,9 @@ the human trusts its judgment, persists in CockroachDB. A lesson taught once,
 anywhere, is instantly reusable everywhere, and survives any failure — including
 the incident itself.
 
-![Architecture](docs/architecture.svg)
+![Architecture](docs/architecture.png)
+
+*Interactive versions: [architecture](docs/diagrams/architecture.html) · [one incident end to end](docs/diagrams/sequence.html) — both have guided views, hover-to-trace and export.*
 
 > **▶ [Interactive engineering walk-through](https://claude.ai/code/artifact/45d43973-9d2e-4b78-819d-a5acd2e5a872)** — a live tutorial where the widgets run the real decision logic: toggle memory on/off, teach a schema-drift pattern and watch it pollinate across systems, and earn autonomy in the trust-ledger simulator.
 
@@ -104,8 +106,12 @@ Dependencies: `psycopg[binary]` (v3), `boto3`.
 
 ## Status
 
-Live: **https://incident-memory-agent.vercel.app** — every beat runs against a real
-CockroachDB Cloud cluster with real Bedrock embeddings and reasoning. Nine scripts,
+Live: **https://incident-memory-agent.vercel.app** — an operator dashboard backed by a
+real CockroachDB Cloud cluster with real Bedrock embeddings and reasoning. The incident
+*stream* is generated for the demo; everything downstream of it — the vector search, the
+decisions, the trust ledger, the audit log — is live. Every incident exposes its
+underlying `monitored_signals` row so you can check that rather than take our word.
+The original guided console is still at `/demo`. Nine scripts,
 each with an offline `--check`. Measured on the live cluster: escalation
 **100% → 38%** with memory on, and a pattern taught from Airflow matches its
 BigQuery (0.72) and dbt (0.68) cousins. See **[docs/PROGRESS.md](docs/PROGRESS.md)**.
