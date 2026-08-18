@@ -234,6 +234,16 @@ def demo_console():
     return render_template("index.html", teach=TEACH_DEFAULTS)
 
 
+@app.get("/healthz")
+def healthz():
+    """Liveness only — deliberately does not touch CockroachDB or Bedrock.
+
+    The Lambda Web Adapter polls this before routing the first request; making it
+    depend on the database would turn a slow cold connection into a failed deploy.
+    """
+    return {"ok": True}
+
+
 @app.get("/tutorial")
 def tutorial():
     """The engineering walk-through, served from the app so the link needs no login.
