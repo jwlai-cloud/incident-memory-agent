@@ -39,11 +39,17 @@ def _ca_path() -> str | None:
     """
     pem = os.environ.get("COCKROACH_CA_PEM", "").strip()
     if pem:
+        # Strip wrapping quotes before anything else: docker --env-file and several
+        # dashboards store the quotes as part of the value, and a PEM that starts with
+        # `"` fails in libpq as `bad end line`, which reads like a corrupt certificate
+        # rather than a quoting problem.
+        if len(pem) >= 2 and pem[0] == pem[-1] and pem[0] in "\"'":
+            pem = pem[1:-1]
+        pem = pem.replace("\\n", "\n").strip()   # tolerate literal \n instead of newlines
         tmp = "/tmp/cockroach-ca.crt"
         if not os.path.exists(tmp):
-            # tolerate a value pasted with literal \n instead of real newlines
             with open(tmp, "w") as fh:
-                fh.write(pem.replace("\\n", "\n") + "\n")
+                fh.write(pem + "\n")
         return tmp
     bundled = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certs", "cockroach-ca.crt")
     return bundled if os.path.exists(bundled) else None
