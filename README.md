@@ -43,6 +43,23 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full shape and
 **[docs/LEARNING.md](docs/LEARNING.md)** for the tech breakdown with primary
 sources.
 
+## Where this runs
+
+Stated plainly so nothing has to be inferred:
+
+| Piece | Where it runs |
+|---|---|
+| **Persistent memory layer** — vectors, trust ledger, audit log | **CockroachDB Cloud on AWS**, `us-east-1` |
+| **Embeddings + reasoning prose** — every decision | **Amazon Bedrock**, `us-east-1` (Titan Text v2, Nova Micro) |
+| **Decision engine** (`decide.py`) | `handler(event, context)` — **AWS Lambda-shaped**, deploys there unchanged |
+| **Web console** | **Vercel**, `us-east-1`, co-located with the cluster |
+
+The memory layer and every model call are on AWS; the HTTP front end is on Vercel,
+chosen during the build because it deploys the Flask app in one step and sits in the same
+region as the cluster (co-location took 8 concurrent decisions from 13.5s to 1.5s). No
+part of the agent's memory or inference path leaves AWS. `decide.py` is written to the
+Lambda handler signature specifically so the front end is a swappable detail.
+
 ## Why CockroachDB, and not Postgres with pgvector
 
 For the vector search alone, Postgres is a real option — no point pretending otherwise.

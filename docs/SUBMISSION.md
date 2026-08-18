@@ -73,6 +73,15 @@ Three things make it more than recall:
 - `usage_counters` — a durable cap on model-invoking endpoints, because the public demo
   URL needed a real gate rather than in-process rate limiting.
 
+**Where it runs, stated plainly:** the persistent memory layer is CockroachDB Cloud **on
+AWS us-east-1**, and every embedding and every line of reasoning prose is an **Amazon
+Bedrock** call in the same region — so no part of the agent's memory or inference path
+leaves AWS. `decide.py` is written to the Lambda handler signature (`handler(event,
+context)`) and deploys to **AWS Lambda** unchanged. The HTTP console itself runs on Vercel,
+co-located in us-east-1; we picked it mid-build because it ships the Flask app in one step,
+and `decide.py`'s handler shape is exactly what keeps that front end a swappable detail
+rather than an architectural commitment.
+
 **AWS** does two jobs, and only two: **Bedrock Titan Text Embeddings v2**
 (`amazon.titan-embed-text-v2:0`, 512-d, normalized) turns signatures into vectors, and
 **Bedrock Converse** (Nova Micro) writes the human-readable reasoning *after* the
