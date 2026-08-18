@@ -79,6 +79,10 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:0 2
   display:flex;align-items:center;gap:9px}
 .count{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--ink-2)}
 .count.crit{background:var(--red-bg);border-color:transparent;color:var(--red)}
+/* the response controls live in the row drawer, which is not discoverable on its own */
+.hint{margin-left:auto;text-transform:none;letter-spacing:0;font-family:var(--sans);
+  font-size:11.5px;font-weight:400;color:var(--ink-3)}
+@media(max-width:820px){.hint{display:none}}
 
 /* per-source health strip */
 .systems{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
@@ -240,7 +244,8 @@ details.hood summary{padding:13px 17px;font-family:var(--mono);font-size:12px;le
   <div class="cols">
     <div>
       <div class="card">
-        <h2>Your queue <span class="count crit" id="needcount">0</span></h2>
+        <h2>Your queue <span class="count crit" id="needcount">0</span>
+          <span class="hint">click a row to review — approve, modify or reject writes to the trust ledger</span></h2>
         <div id="needs"></div>
       </div>
       <div class="card">
@@ -333,6 +338,9 @@ function render(){
   need.sort((a,b)=> (a.action==='escalated'?0:1) - (b.action==='escalated'?0:1));
   $('#systems').innerHTML = systems(s);
   $('#needcount').textContent=need.length;
+  // "click a row" is nonsense when there are no rows — and an empty queue is the state
+  // a first-time visitor lands on
+  $('.hint').hidden = need.length===0;
   $('#allcount').textContent=s.length;
   $('#patcount').textContent=STATE.runbook.length;
   $('#needs').innerHTML = need.length? board(need) : '<p class="empty">Queue is clear — memory handled everything it recognised.</p>';
