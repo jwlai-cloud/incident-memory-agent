@@ -1,6 +1,6 @@
 # Devpost submission — Mimir (incident-memory-agent)
 
-**Live demo:** https://incident-memory-agent.vercel.app (guided walkthrough at `/demo`)
+**Live demo:** https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws (guided walkthrough at `/demo`)
 **Repo:** https://github.com/jwlai-cloud/incident-memory-agent
 **Tagline:** *Mimir — consult what survived.*
 
@@ -77,16 +77,18 @@ Three things make it more than recall:
 AWS us-east-1**, and every embedding and every line of reasoning prose is an **Amazon
 Bedrock** call in the same region — so no part of the agent's memory or inference path
 leaves AWS. `decide.py` is written to the Lambda handler signature (`handler(event,
-context)`) and deploys to **AWS Lambda** unchanged. The HTTP console itself runs on Vercel,
-co-located in us-east-1; we picked it mid-build because it ships the Flask app in one step,
-and `decide.py`'s handler shape is exactly what keeps that front end a swappable detail
-rather than an architectural commitment.
+context)`). The console itself runs on **AWS Lambda** as a container image behind a
+Function URL, in the same region — via the AWS Lambda Web Adapter, so `app.py` needed no
+Lambda-specific code and a Vercel mirror still builds from the identical source. The
+function holds no AWS access key at all: `bedrock:InvokeModel` is granted by its execution
+role and scoped to the two model ARNs the app calls, so the credential is minted per
+invocation by STS instead of living in an environment variable.
 
 **AWS** does two jobs, and only two: **Bedrock Titan Text Embeddings v2**
 (`amazon.titan-embed-text-v2:0`, 512-d, normalized) turns signatures into vectors, and
 **Bedrock Converse** (Nova Micro) writes the human-readable reasoning *after* the
-decision is already made. `decide.handler` is Lambda-shaped. The console runs on Vercel
-in **us-east-1**, co-located with the cluster.
+decision is already made. `decide.handler` is Lambda-shaped, and the whole console runs
+on **AWS Lambda** in **us-east-1**, co-located with the cluster.
 
 **Two tools, claimed honestly.** *Distributed Vector Indexing* is on every incident's
 decision path. *Agent Skills* covers the CockroachDB-native incident, where a matched
@@ -225,4 +227,4 @@ is exactly what gets fed to the reasoning call on every future match.
 
 `cockroachdb` · `cockroachdb-vector-search` · `cockroachdb-cloud` · `amazon-bedrock` ·
 `amazon-titan` · `amazon-nova` · `aws-lambda` · `python` · `flask` · `psycopg3` ·
-`vercel` · `sql` · `airflow` · `bigquery` · `dbt`
+`aws-lambda` · `amazon-ecr` · `vercel` · `sql` · `airflow` · `bigquery` · `dbt`

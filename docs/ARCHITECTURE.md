@@ -9,7 +9,7 @@ CockroachDB itself). Its memory — every past incident pattern **and** the
 per-pattern record of how much the human trusts its judgment — lives in
 **CockroachDB**. Embeddings come from **AWS Bedrock** (Titan Text v2); the
 decision step is written Lambda-shaped (`handler(event, context)`) and runs today
-as a Flask route on Vercel in us-east-1, beside the cluster. A lesson taught once from one system
+as an AWS Lambda container image behind a Function URL in us-east-1, beside the cluster. A lesson taught once from one system
 is instantly matchable for a cousin incident in another, because one store holds
 both the vectors and the structured trust/audit ledger with no replication lag.
 
@@ -111,7 +111,10 @@ overstating it would be the easy lie.
   `amazon.nova-micro-v1:0`, env-configurable) for reasoning prose.
 - **AWS Bedrock is the only AWS service actually in the request path.** `decide.py`
   exposes `handler(event, context)` so it deploys to **AWS Lambda** unchanged, but the
-  live demo runs it on Vercel — so Lambda is a supported target, not a claim.
+  live demo runs on **AWS Lambda** (container image, arm64, Function URL), so the whole
+  request path — console, decision engine, embeddings, reasoning — is on AWS. The function
+  carries no access key: `bedrock:InvokeModel` comes from its execution role, scoped to the
+  two model ARNs the app actually calls. A Vercel mirror is kept off the same source.
 - **CockroachDB** (Cloud Basic, or self-hosted single-node) — memory +
   vectors + ledger. Vector index requires
   `SET CLUSTER SETTING feature.vector_index.enabled = true`.

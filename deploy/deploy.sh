@@ -18,6 +18,13 @@ say(){ printf '\n\033[1m== %s\033[0m\n' "$1"; }
 say "ECR repository"
 aws ecr describe-repositories --repository-names "$NAME" --region "$REGION" >/dev/null 2>&1 \
   || aws ecr create-repository --repository-name "$NAME" --region "$REGION" >/dev/null
+cat > /tmp/mimir-ecr-policy.json <<'JSON'
+{"Version":"2012-10-17","Statement":[{"Sid":"LambdaECRImageRetrievalPolicy","Effect":"Allow",
+ "Principal":{"Service":"lambda.amazonaws.com"},
+ "Action":["ecr:BatchGetImage","ecr:GetDownloadUrlForLayer"]}]}
+JSON
+aws ecr set-repository-policy --repository-name "$NAME" --region "$REGION" \
+  --policy-text file:///tmp/mimir-ecr-policy.json >/dev/null   # else CreateFunction: "Lambda does not have permission to access the ECR image"
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "${ACCT}.dkr.ecr.${REGION}.amazonaws.com"
 
 say "Build + push (arm64)"
@@ -79,8 +86,14 @@ aws lambda wait function-updated --function-name "$NAME" --region "$REGION"
 say "Function URL"
 aws lambda get-function-url-config --function-name "$NAME" --region "$REGION" >/dev/null 2>&1 || {
   aws lambda create-function-url-config --function-name "$NAME" --auth-type NONE --region "$REGION" >/dev/null
-  aws lambda add-permission --function-name "$NAME" --statement-id public-url \
+  # Since Oct 2025 a public function URL needs BOTH statements, and the second one takes
+  # --invoked-via-function-url rather than --function-url-auth-type. Missing it yields a
+  # 403 on every path with AuthType already NONE, which looks like a config problem
+  # somewhere else entirely.
+  aws lambda add-permission --function-name "$NAME" --statement-id UrlPolicyInvokeURL \
     --action lambda:InvokeFunctionUrl --principal '*' --function-url-auth-type NONE --region "$REGION" >/dev/null
+  aws lambda add-permission --function-name "$NAME" --statement-id UrlPolicyInvokeFunction \
+    --action lambda:InvokeFunction --principal '*' --invoked-via-function-url --region "$REGION" >/dev/null
 }
 URL=$(aws lambda get-function-url-config --function-name "$NAME" --region "$REGION" --query FunctionUrl --output text)
 
