@@ -94,6 +94,43 @@ would have been easy to tick four boxes and let the architecture diagram imply t
 a submission whose honesty rule is load-bearing in its own product design does not get to
 be selective about applying it.
 
+### Why CockroachDB, and not Postgres with pgvector
+
+The fair version of the sceptical question is: Postgres with pgvector does vector search
+on one node, so what is this buying? Two things, and only one of them is about scale.
+
+**The honest concession first:** for the vector search alone, Postgres is a real option.
+We are not going to pretend otherwise.
+
+**The first answer is the premise of the product.** An incident agent's memory is needed
+at precisely the moment infrastructure is misbehaving — that is not an edge case, it is
+the *only* case. An agent whose memory goes offline during an incident doesn't degrade
+gracefully; it stops. A single-node memory has a failure mode that is perfectly
+correlated with the moment of maximum need. A distributed, fault-tolerant store does not.
+Every other design here follows from taking that seriously, which is also why the demo
+contains no infrastructure-kill theatre: the claim is structural, not a stunt.
+
+**The second answer is a correctness argument, and it is the one we'd defend hardest.**
+The trust ledger has to be transactional with the vector it describes. Autonomy is granted
+only when a pattern's approval streak justifies it — so the read that checks
+`approved_unchanged_count` and the vector that identified the pattern must be the same
+consistent snapshot. Split them across a vector database and an operational database and
+you have introduced a window in which the agent can grant itself authority that was never
+earned. That is not a performance regression; it is a safety hole. Here it is one row,
+one serializable transaction, and the hole cannot exist.
+
+This is also why we didn't reach for a purpose-built memory service. Something like Zep
+would hand us better memory abstractions than we wrote by hand — genuinely. What it would
+not give us is a transactional boundary around *memory plus the human's trust in that
+memory*, because those services model recall, not authority. Our whole differentiator
+lives in that join.
+
+The scale argument is the least interesting one, but it is real: eight incidents today,
+thousands across many teams on a real platform. A lesson taught in one region is live
+everywhere immediately, with no replica lag between where it was learned and where it is
+needed — which is exactly the property that makes cross-system pollination trustworthy
+rather than eventually-true.
+
 ## Challenges we ran into
 
 **The threshold calibrator confidently produced a number that breaks the demo.** A

@@ -43,6 +43,25 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full shape and
 **[docs/LEARNING.md](docs/LEARNING.md)** for the tech breakdown with primary
 sources.
 
+## Why CockroachDB, and not Postgres with pgvector
+
+For the vector search alone, Postgres is a real option — no point pretending otherwise.
+Two things make the difference here:
+
+1. **The memory is needed exactly when infrastructure is misbehaving.** That's not an
+   edge case for an incident agent, it's the only case. A single-node memory's failure
+   mode is perfectly correlated with the moment of maximum need.
+2. **The trust ledger must be transactional with the vector it describes.** Autonomy is
+   granted only when a pattern's approval streak justifies it, so the check on
+   `approved_unchanged_count` and the vector that found the pattern have to be one
+   consistent snapshot. Split across a vector DB and an operational DB, there's a window
+   where the agent can be granted authority it never earned — a safety hole, not a
+   perf regression. One row, one serializable transaction, and it can't exist.
+
+That second point is also why a purpose-built memory service wasn't the answer: those
+model recall, not authority, and this project's differentiator lives in the join between
+the two.
+
 ## Tools used, and how
 
 - **CockroachDB — Distributed Vector Indexing (C-SPANN):** incident patterns are
