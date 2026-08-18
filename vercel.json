@@ -10,7 +10,7 @@
     "api/index.py": {
       "maxDuration": 300,
       "memory": 1024,
-      "includeFiles": "{app.py,templates/**,scripts/**,certs/**}"
+      "includeFiles": "{app.py,templates/**,scripts/**,certs/**,docs/tutorial.html}"
     }
   }
 }

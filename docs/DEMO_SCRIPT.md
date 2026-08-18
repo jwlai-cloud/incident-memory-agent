@@ -1,5 +1,11 @@
 # Demo script — 3-minute video
 
+> **Superseded for recording.** This is the design-time storyboard: it fixes the incident
+> cast and the beats the product had to support. The shot list actually recorded lives in
+> [`VIDEO_SCRIPT.md`](VIDEO_SCRIPT.md), against the operator dashboard and its real button
+> labels. Keep this file for the cast table and the recording rules; follow that one to
+> shoot.
+
 ## Incident cast (produced by `scripts/simulate_incidents.py`)
 
 | ID | System | What it is | Role |

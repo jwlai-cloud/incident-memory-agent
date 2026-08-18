@@ -14,7 +14,7 @@ import sys
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
 
@@ -174,6 +174,19 @@ def dashboard():
 def demo_console():
     """The original guided console. Kept as a verified fallback."""
     return render_template("index.html", teach=TEACH_DEFAULTS)
+
+
+@app.get("/tutorial")
+def tutorial():
+    """The engineering walk-through, served from the app so the link needs no login.
+
+    It lived as a private hosted artifact, which meant the README pointed judges at a
+    URL only its author could open. Static file, no DB touch, no rate limit.
+    """
+    return send_from_directory(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs"),
+        "tutorial.html",
+    )
 
 
 @app.get("/api/state")
