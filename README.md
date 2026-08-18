@@ -13,7 +13,7 @@ the incident itself.
 
 *Interactive versions: [architecture](docs/diagrams/architecture.html) · [one incident end to end](docs/diagrams/sequence.html) — both have guided views, hover-to-trace and export.*
 
-> **▶ [Interactive engineering walk-through](https://claude.ai/code/artifact/45d43973-9d2e-4b78-819d-a5acd2e5a872)** — a live tutorial where the widgets run the real decision logic: toggle memory on/off, teach a schema-drift pattern and watch it pollinate across systems, and earn autonomy in the trust-ledger simulator.
+> **▶ [Interactive engineering walk-through](https://incident-memory-agent.vercel.app/tutorial)** — a live tutorial where the widgets run the real decision logic: toggle memory on/off, teach a schema-drift pattern and watch it pollinate across systems, and earn autonomy in the trust-ledger simulator.
 
 ## What makes it different
 
@@ -43,27 +43,52 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full shape and
 **[docs/LEARNING.md](docs/LEARNING.md)** for the tech breakdown with primary
 sources.
 
+## Why CockroachDB, and not Postgres with pgvector
+
+For the vector search alone, Postgres is a real option — no point pretending otherwise.
+Two things make the difference here:
+
+1. **The memory is needed exactly when infrastructure is misbehaving.** That's not an
+   edge case for an incident agent, it's the only case. A single-node memory's failure
+   mode is perfectly correlated with the moment of maximum need.
+2. **The trust ledger must be transactional with the vector it describes.** Autonomy is
+   granted only when a pattern's approval streak justifies it, so the check on
+   `approved_unchanged_count` and the vector that found the pattern have to be one
+   consistent snapshot. Split across a vector DB and an operational DB, there's a window
+   where the agent can be granted authority it never earned — a safety hole, not a
+   perf regression. One row, one serializable transaction, and it can't exist.
+
+That second point is also why a purpose-built memory service wasn't the answer: those
+model recall, not authority, and this project's differentiator lives in the join between
+the two.
+
 ## Tools used, and how
 
 - **CockroachDB — Distributed Vector Indexing (C-SPANN):** incident patterns are
   stored as `VECTOR(512)` and matched with the cosine `<=>` operator
   (`vector_cosine_ops`). This is the core memory, and it *is* on every incident's
   decision path.
-- **CockroachDB — MCP Server:** used **development-side**, not in the request path.
-  The cluster exposes a managed MCP endpoint that a coding assistant queries read-only
-  to inspect schema and memory while building. The runtime decision path
-  (`decide.py`) talks to CockroachDB directly over pgwire and does not go through MCP.
-  The session FAQ confirms dev-side usage satisfies the tool requirement; saying
-  otherwise would overstate it.
-- **CockroachDB — ccloud CLI + Agent Skills:** *only* for the CockroachDB-native
-  incident. A matched hot-range pattern proposes the real
-  [`analyzing-range-distribution`](https://github.com/cockroachlabs/cockroachdb-skills)
-  skill, executed via ccloud. These do not diagnose Airflow/BigQuery/dbt — the
-  split is deliberate and stated plainly.
+- **CockroachDB — MCP Server: not used.** The cluster exposes a managed MCP endpoint
+  and it would have been a convenient development-side way to inspect schema, but it
+  was never wired up. The runtime talks pgwire directly and always did. Listed here
+  because a reader comparing this repo against the tool list deserves to know which
+  boxes we are *not* ticking.
+- **CockroachDB — Agent Skills:** *only* for the CockroachDB-native incident. A matched
+  hot-range pattern carries `skill_ref='analyzing-range-distribution'` and proposes the
+  real [skill](https://github.com/cockroachlabs/cockroachdb-skills) from Cockroach Labs;
+  on approval its read-only diagnostic runs against the live cluster and returns real
+  range ids. This does not diagnose Airflow/BigQuery/dbt — the split is deliberate.
+- **CockroachDB — ccloud CLI: a code path we never executed.** `ccloud_wrapper.py` has a
+  working `--via ccloud` branch, but `ccloud auth login` is interactive-browser and
+  cannot run in a serverless function, so the deployed demo defaults to `via="sql"` and
+  runs the identical read-only SQL over pgwire. Not claimed as a tool used.
 - **AWS Bedrock:** Titan Text Embeddings v2 (`amazon.titan-embed-text-v2:0`, 512
   dims) for embeddings; the Converse API (default Nova Micro) for the reasoning
   prose on a match. The *decision* is deterministic; the LLM only explains.
-- **AWS Lambda:** hosts the decision step (`decide.py`'s `handler`).
+- **AWS Lambda:** a supported target, not a claim. `decide.py` exposes
+  `handler(event, context)` and deploys to Lambda unchanged, but the live demo runs it
+  as a Flask route on Vercel in us-east-1, co-located with the cluster. **Bedrock is the
+  only AWS service in the request path.**
 
 ## Repo layout
 
@@ -103,6 +128,28 @@ python3 scripts/decide.py --all                    # memory on: known incidents 
 ```
 
 Dependencies: `psycopg[binary]` (v3), `boto3`.
+
+## Reviewer access
+
+The app is open by default. Setting `DEMO_PASSCODE` (a Vercel environment variable) gates
+the six endpoints that **mutate** demo state — reset, decide, teach, respond, grant,
+ccloud — while leaving everything readable. The dashboard, the incident records and the
+live-SQL panel stay public; only the controls that spend model calls or change the board
+require the key.
+
+Reviewers get a link, not a form: `https://<host>/?key=<passcode>` sets a cookie once and
+the clean URL works from then on. `/demo` and `/tutorial` accept the same link. Scripted
+access can send `X-Demo-Passcode` instead. Comparison is constant-time and the passcode is
+never rendered into the page.
+
+This exists because demo state is **global**: the daily Bedrock caps below already handle
+cost, but one stranger mid-run leaves the board looking broken for whoever opens it next.
+Per-session state is the real fix and is listed under *What's next*.
+
+```bash
+# generate one without it appearing in your shell history or any log
+python3 -c "import secrets; print(secrets.token_urlsafe(18))"   # paste into Vercel → Settings → Environment Variables
+```
 
 ## Status
 

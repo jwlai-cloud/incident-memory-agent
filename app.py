@@ -12,9 +12,11 @@ from __future__ import annotations
 import os
 import sys
 import uuid
+import hmac
+from urllib.parse import urlencode
 from concurrent.futures import ThreadPoolExecutor
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
 
@@ -81,6 +83,30 @@ DAILY_GLOBAL = int(os.environ.get("MODEL_CALLS_PER_DAY", "500"))     # ~60 full 
 DAILY_PER_IP = int(os.environ.get("MODEL_CALLS_PER_DAY_PER_IP", "100"))
 MODEL_ENDPOINTS = {"/api/reset", "/api/decide", "/api/teach"}  # these call Bedrock
 
+# Optional passcode. Unset (the default) leaves the app fully open, so local dev and any
+# existing deployment keep working untouched; set DEMO_PASSCODE in the Vercel dashboard to
+# turn it on. It gates only the endpoints that MUTATE the demo — reading is always free, so
+# the app still loads and tells its story to anyone.
+#
+# The real risk here isn't Bedrock spend (the counters above cap that); it's that demo state
+# is global, so one stranger mid-run leaves the board looking broken for the next visitor.
+# Judges get a ?key=... link rather than a passcode to type: one click, cookie set, clean URL
+# from then on. A wall you have to type at is a wall some judge bounces off.
+DEMO_PASSCODE = os.environ.get("DEMO_PASSCODE", "").strip()
+MUTATING_ENDPOINTS = MODEL_ENDPOINTS | {"/api/respond", "/api/grant", "/api/ccloud"}
+_COOKIE = "mimir_key"
+
+
+def _has_key() -> bool:
+    """True when this request carries the passcode, by cookie or header.
+
+    Both sources are checked independently: `cookie or header` would let a stale
+    cookie (left over from a rotated passcode) mask a valid header and 401 the
+    documented scripted path.
+    """
+    return any(hmac.compare_digest(v, DEMO_PASSCODE) for v in
+               (request.cookies.get(_COOKIE, ""), request.headers.get("X-Demo-Passcode", "")) if v)
+
 
 def _bump(cur, bucket: str) -> int:
     """Atomically increment today's counter and return the new value."""
@@ -96,6 +122,10 @@ def _bump(cur, bucket: str) -> int:
 def _guard():
     if request.method != "POST":
         return None
+    if DEMO_PASSCODE and request.path in MUTATING_ENDPOINTS and not _has_key():
+        return jsonify(ok=False, needs_key=True,
+                       error="This demo is running with a reviewer key. Open the link from "
+                             "the submission (it ends in ?key=...) and the controls unlock."), 401
     ip = (request.headers.get("x-forwarded-for", "") or request.remote_addr or "?").split(",")[0].strip()
 
     import time
@@ -164,16 +194,57 @@ def _json_errors(e):
     return jsonify(ok=False, error=f"{type(e).__name__} (ref {ref}) — see server logs"), 500
 
 
+@app.before_request
+def _reviewer_link():
+    """Exchange ?key=... for a cookie, then redirect to the clean URL.
+
+    Two reasons this is a redirect rather than an after_request hook. The page is
+    rendered before an after_request runs, so the first click on a reviewer link
+    would have rendered the read-only notice despite the key being valid — the exact
+    bad first impression the link was meant to avoid. And stripping the key from the
+    URL keeps it out of the address bar, out of the Referer of every later request,
+    and out of anything the reviewer copies. It is still a long-lived passcode rather
+    than a single-use token, and it will appear in this app's own access log; for a
+    gate whose worst case is resetting a demo board, that is a deliberate trade.
+    """
+    if not DEMO_PASSCODE or request.method != "GET":
+        return None
+    supplied = request.args.get("key", "")
+    if not supplied or not hmac.compare_digest(supplied, DEMO_PASSCODE):
+        return None
+    rest = {k: v for k, v in request.args.items(multi=True) if k != "key"}
+    target = request.path + (("?" + urlencode(rest)) if rest else "")
+    resp = redirect(target, code=303)
+    resp.set_cookie(_COOKIE, DEMO_PASSCODE, max_age=60 * 60 * 24 * 30,
+                    httponly=True, samesite="Lax",
+                    secure=request.headers.get("x-forwarded-proto") == "https")
+    return resp
+
+
 @app.get("/")
 def dashboard():
     """The operator view — what an on-call engineer would actually keep open."""
-    return render_template("dashboard.html", teach=TEACH_DEFAULTS)
+    return render_template("dashboard.html", teach=TEACH_DEFAULTS,
+                           locked=bool(DEMO_PASSCODE) and not _has_key())
 
 
 @app.get("/demo")
 def demo_console():
     """The original guided console. Kept as a verified fallback."""
     return render_template("index.html", teach=TEACH_DEFAULTS)
+
+
+@app.get("/tutorial")
+def tutorial():
+    """The engineering walk-through, served from the app so the link needs no login.
+
+    It lived as a private hosted artifact, which meant the README pointed judges at a
+    URL only its author could open. Static file, no DB touch, no rate limit.
+    """
+    return send_from_directory(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs"),
+        "tutorial.html",
+    )
 
 
 @app.get("/api/state")

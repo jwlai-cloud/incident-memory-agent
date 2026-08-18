@@ -8,7 +8,8 @@ An incident-triage agent for data platforms (Airflow, BigQuery, dbt, and
 CockroachDB itself). Its memory — every past incident pattern **and** the
 per-pattern record of how much the human trusts its judgment — lives in
 **CockroachDB**. Embeddings come from **AWS Bedrock** (Titan Text v2); the
-decision step runs as an **AWS Lambda**. A lesson taught once from one system
+decision step is written Lambda-shaped (`handler(event, context)`) and runs today
+as a Flask route on Vercel in us-east-1, beside the cluster. A lesson taught once from one system
 is instantly matchable for a cousin incident in another, because one store holds
 both the vectors and the structured trust/audit ledger with no replication lag.
 
@@ -80,22 +81,37 @@ All ledger writes are in-SQL (`col = col + 1`, conditional `array_append`,
 single-UPDATE reject-revoke) → no read-modify-write race; CockroachDB's
 serializable default makes concurrent responses safe.
 
-## The honest four-tool split
+## The honest tool split
 
-- **Distributed Vector Indexing** + **MCP Server** — load-bearing for every
-  incident, any system. The core memory and the analyst interface.
-- **ccloud CLI** + **Agent Skills** — load-bearing only for the
-  CockroachDB-native incident (beat 6): a matched pattern with
-  `remediation_channel='ccloud_skill'` proposes the real
-  `analyzing-range-distribution` skill from `cockroachlabs/cockroachdb-skills`,
-  executed via ccloud. These do not diagnose Airflow/BigQuery/dbt.
+Two tools are genuinely integrated; two are not, and this section says so because
+overstating it would be the easy lie.
+
+- **Distributed Vector Indexing** — load-bearing for every incident, any system.
+  `VECTOR(512)` + C-SPANN (`vector_cosine_ops`), matched with `<=>`, in the same
+  row as the trust ledger it governs.
+- **Agent Skills** — load-bearing for the CockroachDB-native incident only. A
+  matched pattern with `remediation_channel='ccloud_skill'` and
+  `skill_ref='analyzing-range-distribution'` proposes the real skill from
+  `cockroachlabs/cockroachdb-skills`; its diagnostic runs against the live
+  cluster and returns real range ids. Does not diagnose Airflow/BigQuery/dbt.
+- **ccloud CLI — code path only, never executed.** `ccloud_wrapper.py` has a
+  working `--via ccloud` branch that shells out to `ccloud cluster sql`, but
+  `ccloud auth login` is interactive-browser and cannot run in a serverless
+  function, so `/api/ccloud` defaults to `via="sql"`: the identical read-only
+  SQL over `COCKROACH_URL`. We do not claim this tool.
+- **MCP Server — not wired.** The cluster exposes a managed MCP endpoint
+  (`https://cockroachlabs.cloud/mcp`, header `mcp-cluster-id`) which would be a
+  development-side convenience for schema inspection. It was never connected.
+  The runtime talks pgwire directly and always did. We do not claim this tool.
 
 ## External dependencies
 
 - **AWS Bedrock** — Titan Text Embeddings v2 (`amazon.titan-embed-text-v2:0`,
   512 dims, normalize=true) for embeddings; Converse API (default
   `amazon.nova-micro-v1:0`, env-configurable) for reasoning prose.
-- **AWS Lambda** — hosts `decide.py` (`handler(event, context)`).
+- **AWS Bedrock is the only AWS service actually in the request path.** `decide.py`
+  exposes `handler(event, context)` so it deploys to **AWS Lambda** unchanged, but the
+  live demo runs it on Vercel — so Lambda is a supported target, not a claim.
 - **CockroachDB** (Cloud Basic, or self-hosted single-node) — memory +
   vectors + ledger. Vector index requires
   `SET CLUSTER SETTING feature.vector_index.enabled = true`.

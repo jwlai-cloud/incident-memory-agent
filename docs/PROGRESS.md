@@ -62,14 +62,42 @@ offline `--check`.
 
 ## Next (priority order)
 
-1. **Record the demo video** (<3 min) following `DEMO_SCRIPT.md`; the console's
-   beat rail is the shot list.
-2. Submission writeup (Devpost) + regenerated architecture diagrams.
-3. **Step 8 — MCP wiring.** The cluster's Connect dialog gives a managed MCP
-   endpoint (`https://cockroachlabs.cloud/mcp`, header `mcp-cluster-id`).
-   Dev-side use satisfies the requirement per the session FAQ.
-4. **AWS budget action** on the Bedrock key — the slow backstop under the durable
+Submission-blocking items only. Everything in the build order is done.
+
+1. **Upload the demo video** (`capture/demo/mimir-demo.mp4`, 2:53) to YouTube or Vimeo
+   as **public or unlisted** — a private video is unplayable for judges — and paste the
+   URL into Devpost. Human-only step.
+2. **Paste `docs/SUBMISSION.md`** into the Devpost story fields; upload the six gallery
+   images. Human-only step.
+3. **AWS budget action** on the Bedrock key — the slow backstop under the durable
    in-database cap. Console-only; the `mimir-bedrock` IAM user cannot create it.
+4. **Step 8 — MCP wiring** is development-side only and stays that way: the cluster's
+   Connect dialog gives a managed MCP endpoint (`https://cockroachlabs.cloud/mcp`,
+   header `mcp-cluster-id`) used by a coding assistant for read-only schema inspection.
+   The runtime talks pgwire directly. Stated plainly in README and SUBMISSION rather
+   than implied to be on the decision path.
+
+## Known gaps, declared
+
+- **Demo state is global.** Reset / decide / teach / respond mutate shared rows, so two
+  concurrent reviewers share one run and each browser keeps its own rail progress. A
+  reviewer arriving mid-run sees a half-finished board. Scoping state to a session is
+  the single highest-value remaining fix for a publicly judged demo; it is listed under
+  "What's next" in SUBMISSION.md rather than quietly omitted.
+- **Embedding calls happen inside open transactions.** Fine at demo scale, wrong under
+  real concurrency.
+
+## Done since the cluster came up
+
+- Operator dashboard is the primary view at `/`; the guided console moved to `/demo`.
+- Per-incident provenance: every row opens its real `monitored_signals` record.
+- Incident rows are keyboard-operable (`role=button`, `aria-expanded`, delegated
+  click/keydown) — the drawer holds the decision controls, so this was an access bug,
+  not a nicety.
+- The engineering walk-through is served from the app at `/tutorial`. It previously
+  pointed at a private hosted artifact URL that only its author could open.
+- Demo video recut to 12 beats at 2:53, with AWS/CockroachDB service names as on-screen
+  overlays rather than narration alone.
 
 ## Open questions
 
@@ -84,7 +112,7 @@ offline `--check`.
   The beat-6 diagnostic uses the tier-compatible per-index range distribution.
 - CockroachDB cannot infer a placeholder's type inside `ANY()` / `array_append`
   — needs an explicit `::STRING` cast (`IndeterminateDatatype` otherwise).
-- `TRUNCATE` is a schema change (new descriptor via a job): ~65s on Basic for a
+- `TRUNCATE` is a schema change (new descriptor via a job): 68.6s on Basic for a
   handful of rows. `DELETE` is ~1s.
 - CockroachDB Cloud signs with its own CA, so `sslrootcert=system` fails; the CA
   must be supplied explicitly (here via `COCKROACH_CA_PEM`).

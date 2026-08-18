@@ -79,12 +79,21 @@ the judged thing), with a bounded, HITL-gated action layer:
 to a technical judge. "The agent knows what it's allowed to decide
 alone, and how it earned that" is the credible version.
 
-## The honest four-tool split (do not blur this in submission text)
+## The honest tool split (do not blur this in submission text)
 
-- **Distributed Vector Indexing** + **MCP Server** — load-bearing for
-  every incident, any source system. The core memory and the analyst
-  interface.
-- **ccloud CLI** + **Agent Skills Repo** — load-bearing specifically
+> **Outcome, recorded after build.** This section was the *design* intent for four
+> tools. Two of them did not survive contact: `ccloud auth login` is
+> interactive-browser and cannot run in a serverless function, so the deployed
+> demo runs the skill's diagnostic over pgwire and the ccloud branch was never
+> executed; the managed MCP endpoint was simply never wired. The submission
+> claims **two** tools — Vector Indexing and Agent Skills. Applying this
+> section's own rule to itself is the whole point of it existing.
+
+- **Distributed Vector Indexing** — load-bearing for every incident, any source
+  system. The core memory.
+- **MCP Server** — intended as the analyst/development interface. Not wired; not
+  claimed.
+- **Agent Skills Repo** (and, as designed, **ccloud CLI**) — load-bearing specifically
   for the CockroachDB-native incident beat (see DEMO_SCRIPT beat 6).
   ccloud manages CockroachDB clusters; it has no natural role fixing
   an Airflow task. The Agent Skills repo encodes *CockroachDB*

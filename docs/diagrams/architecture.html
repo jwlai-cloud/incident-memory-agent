@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="archify 2.12.0">
+  <meta name="generator" content="archify 2.13.0">
   <title>Mimir — incident memory agent Diagram</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
@@ -4605,7 +4605,7 @@
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
           <text data-detail-anchor x="135" y="304" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Incident sources</text>
-        <text data-detail="context" x="135" y="320" class="t-muted" font-size="9" text-anchor="middle">Airflow · BigQuery · dbt · CockroachDB</text>
+        <text data-detail="context" x="135" y="320" class="t-muted" font-size="7.9" text-anchor="middle">Airflow · BigQuery · dbt · CockroachDB</text>
         <text data-detail="fine" x="135" y="334" class="t-external" font-size="7" text-anchor="middle">simulated, authentic shapes</text>
         </g>
 
@@ -4685,16 +4685,16 @@
         <text data-detail="context" x="1125" y="510" class="t-muted" font-size="9" text-anchor="middle">trust ledger, promote pattern</text>
         </g>
 
-        <g id="node-ccloud" data-node-id="ccloud" data-node-label="ccloud + Agent Skill" tabindex="0" role="button" aria-label="Focus ccloud + Agent Skill, analyzing-range-distribution, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="analyzing-range-distribution" data-node-tag="beat 6 only" data-node-context="Architecture component">
-          <title>ccloud + Agent Skill · analyzing-range-distribution · Architecture component · beat 6 only</title>
+        <g id="node-ccloud" data-node-id="ccloud" data-node-label="Agent Skill diagnostic" tabindex="0" role="button" aria-label="Focus Agent Skill diagnostic, analyzing-range-distribution · read-only SQL, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="analyzing-range-distribution · read-only SQL" data-node-tag="beat 6 only" data-node-context="Architecture component">
+          <title>Agent Skill diagnostic · analyzing-range-distribution · read-only SQL · Architecture component · beat 6 only</title>
           <rect x="1340" y="460" width="190" height="72" rx="6" class="c-mask"/>
           <rect x="1340" y="460" width="190" height="72" rx="6" class="c-external" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(1346 466) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-detail-anchor x="1435" y="494" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ccloud + Agent Skill</text>
-        <text data-detail="context" x="1435" y="510" class="t-muted" font-size="9" text-anchor="middle">analyzing-range-distribution</text>
+          <text data-detail-anchor x="1435" y="494" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Agent Skill diagnostic</text>
+        <text data-detail="context" x="1435" y="510" class="t-muted" font-size="6.8" text-anchor="middle">analyzing-range-distribution · read-only SQL</text>
         <text data-detail="fine" x="1435" y="524" class="t-external" font-size="7" text-anchor="middle">beat 6 only</text>
         </g>
 
@@ -4749,27 +4749,27 @@
         </g>
 
         <!-- Legend -->
-        <g data-legend-bridge>
-          <text x="40" y="747" class="t-primary" font-size="9" font-weight="600">Legend</text>
-          <g data-legend-kind="cloud">
-            <rect x="40" y="752" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
-            <text x="60" y="760" class="t-muted" font-size="8">Cloud</text>
+        <g data-legend data-legend-bridge>
+          <text x="40" y="740" class="t-primary" font-size="10" font-weight="600">Legend</text>
+          <g data-legend-semantic-kind="frontend" data-legend-kind="frontend" data-legend-label="Frontend" data-legend-x="40" data-legend-baseline="760" data-legend-width="82">
+            <rect x="40" y="752" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
+            <text x="61" y="760" class="t-muted" font-size="8">Frontend</text>
           </g>
-          <g data-legend-kind="external">
-            <rect x="129" y="752" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-            <text x="149" y="760" class="t-muted" font-size="8">External</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Backend" data-legend-x="144" data-legend-baseline="760" data-legend-width="77">
+            <rect x="144" y="752" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+            <text x="165" y="760" class="t-muted" font-size="8">Backend</text>
           </g>
-          <g data-legend-kind="frontend">
-            <rect x="233" y="752" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
-            <text x="253" y="760" class="t-muted" font-size="8">Frontend</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="Database" data-legend-x="243" data-legend-baseline="760" data-legend-width="82">
+            <rect x="243" y="752" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+            <text x="264" y="760" class="t-muted" font-size="8">Database</text>
           </g>
-          <g data-legend-kind="backend">
-            <rect x="337" y="752" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-            <text x="357" y="760" class="t-muted" font-size="8">Backend</text>
+          <g data-legend-semantic-kind="cloud" data-legend-kind="cloud" data-legend-label="Cloud" data-legend-x="347" data-legend-baseline="760" data-legend-width="67">
+            <rect x="347" y="752" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
+            <text x="368" y="760" class="t-muted" font-size="8">Cloud</text>
           </g>
-          <g data-legend-kind="database">
-            <rect x="436" y="752" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="456" y="760" class="t-muted" font-size="8">Database</text>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="External" data-legend-x="436" data-legend-baseline="760" data-legend-width="82">
+            <rect x="436" y="752" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+            <text x="457" y="760" class="t-muted" font-size="8">External</text>
           </g>
         </g>
       </svg>
@@ -5442,6 +5442,7 @@
         });
         Array.prototype.forEach.call(clone.querySelectorAll('[data-legend-kind]'), function (el) {
           el.removeAttribute('data-legend-kind');
+          el.removeAttribute('data-legend-label');
           el.removeAttribute('data-legend-count');
           el.removeAttribute('data-legend-zero');
           el.removeAttribute('data-legend-selected');
@@ -12400,7 +12401,8 @@
           }
           entry.setAttribute('role', 'button');
           entry.setAttribute('tabindex', legendEntries.length ? '-1' : '0');
-          entry.setAttribute('aria-label', 'Inspect ' + fact.label + ', ' + count + ' node' + (count === 1 ? '' : 's'));
+          var visibleLabel = entry.getAttribute('data-legend-label') || fact.label;
+          entry.setAttribute('aria-label', 'Inspect ' + visibleLabel + ', ' + count + ' node' + (count === 1 ? '' : 's'));
           entry.setAttribute('aria-pressed', 'false');
           entry.setAttribute('aria-haspopup', 'dialog');
           entry.setAttribute('aria-controls', 'semantic-lens');

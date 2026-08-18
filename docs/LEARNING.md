@@ -118,3 +118,49 @@ published expertise to keep its own memory layer healthy.
    lookup; the same stream floods the queue. Before/after, no infrastructure kill.
 3. **Cross-system pollination** — `failure_class` + `applies_to`: one schema-drift
    lesson taught from Airflow, caught in BigQuery and dbt.
+
+## 8. What only a real cluster tells you
+
+*Added after the infrastructure existed. Every offline `--check` in this repo passed
+for days before a cluster did — and none of these was visible to any of them.*
+
+**`TRUNCATE` is a schema change.** In CockroachDB it creates a new table descriptor
+through a job rather than clearing rows in place, so it took **68.6 seconds** on tables
+holding a handful of rows. `DELETE ... WHERE true` took the same reset to **2.8s**.
+The lesson generalises: in CockroachDB, reach for DML in a hot path and treat DDL as
+a migration, even when the DDL looks like the "clear this" verb.
+→ https://www.cockroachlabs.com/docs/stable/truncate
+
+**Cloud signs with its own CA, so `sslrootcert=system` fails.** The trust store on the
+host doesn't contain it. The CA has to be supplied explicitly; supplying it as an env
+var (`COCKROACH_CA_PEM`, written to a temp file at boot) rather than a committed file
+keeps it out of the repo and works in a read-only serverless filesystem.
+→ https://www.cockroachlabs.com/docs/cockroachcloud/authentication
+
+**Serverless tiers withhold node-level internals.** `SHOW RANGES … WITH DETAILS` is
+rejected on Cloud Basic — the leaseholder/QPS columns need node access a tenant
+doesn't have. The tier-compatible substitute is per-index range distribution, which
+still shows range concentration. Check tier capability, not just syntax.
+→ https://www.cockroachlabs.com/docs/stable/show-ranges
+
+**Placeholders inside `ANY()` / `array_append` need an explicit cast.** The planner
+can't infer a parameter's type in those positions and raises `IndeterminateDatatype`.
+`%s::STRING` fixes it. This is the exact line that grows `applies_to`, so the failure
+landed on the flagship feature.
+
+**A confident wrong number is worse than a missing one.** The threshold calibrator
+measured seeds at 0.000 and un-taught drift at 0.593 and recommended **0.297** — an
+authoritative-looking value derived from a subset of the real constraints. The binding
+constraint is *taught pattern → cross-system cousin* at **0.321**, above the
+recommendation. Any calibration script should be judged by which constraints it
+measures, not by whether it produces a number. (ADR 0004)
+
+**Simulated data whose SQL executes is not simulated data.** The hot-range payload
+described a table that didn't exist. Harmless while it was only rendered; fatal the
+moment a diagnostic ran against it (`InvalidCatalogName`). Pointing it at the agent's
+own `agent_decisions` table made the beat work *and* made the self-referential claim
+literally true. (ADR 0005)
+
+**Co-location is most of the latency.** Moving the console into AWS us-east-1 beside
+the cluster took 8 concurrent decisions from 13.5s to **1.5s**. Nothing was optimised
+in the code; the cross-Pacific round trips simply stopped happening.
