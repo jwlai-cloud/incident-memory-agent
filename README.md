@@ -179,8 +179,8 @@ python3 -c "import secrets; print(secrets.token_urlsafe(18))"   # add to deploy/
 
 ## Status
 
-Live: **https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws** — on AWS Lambda,
-an operator dashboard backed by a
+Live on **AWS Lambda**: **https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws**
+— an operator dashboard backed by a
 real CockroachDB Cloud cluster with real Bedrock embeddings and reasoning. The incident
 *stream* is generated for the demo; everything downstream of it — the vector search, the
 decisions, the trust ledger, the audit log — is live. Every incident exposes its
