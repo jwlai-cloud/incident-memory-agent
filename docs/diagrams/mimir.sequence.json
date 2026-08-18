@@ -55,7 +55,7 @@
       "id": "console",
       "type": "frontend",
       "label": "Console",
-      "sublabel": "Flask on Vercel"
+      "sublabel": "AWS Lambda"
     },
     {
       "id": "decide",
@@ -113,7 +113,7 @@
       "from": "decide",
       "to": "bedrock",
       "y": 265,
-      "label": "signature \u2192 Titan v2 \u2192 512-d vector"
+      "label": "signature → Titan v2 → 512-d vector"
     },
     {
       "id": "vec",
@@ -136,7 +136,7 @@
       "from": "crdb",
       "to": "decide",
       "y": 400,
-      "label": "upstream-schema-drift \u00b7 distance 0.28",
+      "label": "upstream-schema-drift · distance 0.28",
       "variant": "return"
     },
     {
@@ -144,14 +144,14 @@
       "from": "decide",
       "to": "bedrock",
       "y": 480,
-      "label": "classify() already chose escalate \u2014 Converse only explains"
+      "label": "classify() already chose escalate — Converse only explains"
     },
     {
       "id": "prose",
       "from": "bedrock",
       "to": "decide",
       "y": 512,
-      "label": "\"\u2026similar to previous issues in airflow\"",
+      "label": "\"…similar to previous issues in airflow\"",
       "variant": "return"
     },
     {

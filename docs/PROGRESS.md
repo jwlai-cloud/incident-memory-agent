@@ -52,7 +52,9 @@ offline `--check`.
 - [x] **Threshold calibrated** — `MATCH_MAX_DISTANCE = 0.45` from measured
       distances. The pre-teach-only calibration suggested 0.297, which would have
       silently broken the dbt cross-system match (0.321). See ADR 0004.
-- [x] **Deployed** — https://incident-memory-agent.vercel.app (Vercel, us-east-1,
+- [x] **Deployed** — https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws
+      (AWS Lambda container image behind a Function URL, us-east-1; a Vercel mirror
+      remains off the same source,
       co-located with the cluster). Public, no login. Cluster CA supplied via
       `COCKROACH_CA_PEM`; model-invoking endpoints capped by a durable counter in
       CockroachDB (500/day global, 100/day per IP).

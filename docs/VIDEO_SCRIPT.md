@@ -1,7 +1,7 @@
 # Demo video — shot-by-shot script
 
 **Runtime:** 2:53 (hard cap 3:00) · **12 beats**
-**Source:** https://incident-memory-agent.vercel.app — the operator dashboard at `/`,
+**Source:** https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws — the operator dashboard at `/`,
 not the guided console at `/demo`.
 **Capture:** Playwright driving live production (`capture/`, gitignored):
 `node narrate.mjs && node capture.mjs && node assemble.mjs`.
@@ -130,7 +130,7 @@ are legible on it at 1080p.
 ## Beat 11 — memory defending itself · 16.2s
 
 **Action:** `CockroachDB skill` — live range IDs come back
-**Stack chip:** `ccloud CLI · CockroachDB Agent Skills`
+**Stack chip:** `CockroachDB Agent Skills · analyzing-range-distribution`
 
 > "One of these is CockroachDB's own — a write hotspot on the agent's decision log. It
 > proposes running CockroachDB's published Agent Skill, and those are real range IDs from

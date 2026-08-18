@@ -76,7 +76,7 @@
       "id": "console",
       "type": "frontend",
       "label": "Demo console",
-      "sublabel": "Flask on Vercel \u00b7 us-east-1",
+      "sublabel": "AWS Lambda \u00b7 Function URL \u00b7 us-east-1",
       "pos": [
         310,
         270
