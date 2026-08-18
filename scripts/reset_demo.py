@@ -46,7 +46,7 @@ def reset() -> None:
 
     with psycopg.connect(url) as conn, conn.cursor() as cur:
         # DELETE, not TRUNCATE: in CockroachDB TRUNCATE is a schema change (it swaps
-        # in a fresh table descriptor via a job), which measured ~65s on a Cloud Basic
+        # in a fresh table descriptor via a job), which measured 68.6s on a Cloud Basic
         # cluster even for a handful of rows. DELETE on tables this small is ~1s.
         # Children first — agent_decisions references monitored_signals.
         cur.execute("DELETE FROM agent_decisions WHERE true")

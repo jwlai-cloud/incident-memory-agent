@@ -51,7 +51,7 @@ One store holds the vectors *and* the structured trust/audit ledger — no vecto
 Every self-check passed for days before a cluster existed. Then the infrastructure
 produced four findings none of them could have surfaced:
 
-- **`TRUNCATE` is a schema change in CockroachDB.** It took **68 seconds** on tables
+- **`TRUNCATE` is a schema change in CockroachDB.** It took **68.6 seconds** on tables
   holding a handful of rows, because it creates a new descriptor through a job.
   `DELETE` took the same reset to **2.8s**.
 - **`sslrootcert=system` doesn't work.** CockroachDB Cloud signs with its own CA, so the

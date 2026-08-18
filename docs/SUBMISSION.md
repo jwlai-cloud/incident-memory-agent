@@ -116,7 +116,7 @@ claimed. Simulated in its metrics, real in its subject. (ADR 0005)
 **Four platform facts the docs don't lead with.** `SHOW RANGES … WITH DETAILS` is
 rejected on Cloud Basic (serverless tenants get no node-level internals). CockroachDB
 can't infer a placeholder's type inside `ANY()`/`array_append` — the exact line that
-grows `applies_to`. `TRUNCATE` is a schema change, taking **68 seconds** on a
+grows `applies_to`. `TRUNCATE` is a schema change, taking **68.6 seconds** on a
 handful of rows; `DELETE` took Reset to 2.8s. And `sslrootcert=system` doesn't work,
 because Cloud signs with its own CA.
 

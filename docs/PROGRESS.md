@@ -112,7 +112,7 @@ Submission-blocking items only. Everything in the build order is done.
   The beat-6 diagnostic uses the tier-compatible per-index range distribution.
 - CockroachDB cannot infer a placeholder's type inside `ANY()` / `array_append`
   — needs an explicit `::STRING` cast (`IndeterminateDatatype` otherwise).
-- `TRUNCATE` is a schema change (new descriptor via a job): ~65s on Basic for a
+- `TRUNCATE` is a schema change (new descriptor via a job): 68.6s on Basic for a
   handful of rows. `DELETE` is ~1s.
 - CockroachDB Cloud signs with its own CA, so `sslrootcert=system` fails; the CA
   must be supplied explicitly (here via `COCKROACH_CA_PEM`).

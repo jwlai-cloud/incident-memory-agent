@@ -125,7 +125,7 @@ published expertise to keep its own memory layer healthy.
 for days before a cluster did — and none of these was visible to any of them.*
 
 **`TRUNCATE` is a schema change.** In CockroachDB it creates a new table descriptor
-through a job rather than clearing rows in place, so it took **68 seconds** on tables
+through a job rather than clearing rows in place, so it took **68.6 seconds** on tables
 holding a handful of rows. `DELETE ... WHERE true` took the same reset to **2.8s**.
 The lesson generalises: in CockroachDB, reach for DML in a hot path and treat DDL as
 a migration, even when the DDL looks like the "clear this" verb.

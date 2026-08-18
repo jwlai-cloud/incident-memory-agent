@@ -13,9 +13,10 @@ import os
 import sys
 import uuid
 import hmac
+from urllib.parse import urlencode
 from concurrent.futures import ThreadPoolExecutor
 
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
 
@@ -97,9 +98,14 @@ _COOKIE = "mimir_key"
 
 
 def _has_key() -> bool:
-    """True when this request carries the passcode, by cookie or header."""
-    supplied = request.cookies.get(_COOKIE) or request.headers.get("X-Demo-Passcode", "")
-    return bool(supplied) and hmac.compare_digest(supplied, DEMO_PASSCODE)
+    """True when this request carries the passcode, by cookie or header.
+
+    Both sources are checked independently: `cookie or header` would let a stale
+    cookie (left over from a rotated passcode) mask a valid header and 401 the
+    documented scripted path.
+    """
+    return any(hmac.compare_digest(v, DEMO_PASSCODE) for v in
+               (request.cookies.get(_COOKIE, ""), request.headers.get("X-Demo-Passcode", "")) if v)
 
 
 def _bump(cur, bucket: str) -> int:
@@ -188,19 +194,30 @@ def _json_errors(e):
     return jsonify(ok=False, error=f"{type(e).__name__} (ref {ref}) — see server logs"), 500
 
 
-@app.after_request
-def _accept_key(resp):
-    """Turn ?key=... into a cookie once, so the reviewer link is a click and not a form.
+@app.before_request
+def _reviewer_link():
+    """Exchange ?key=... for a cookie, then redirect to the clean URL.
 
-    Set on any GET so the same link works for /, /demo and /tutorial. The clean URL takes
-    over from then on; the querystring never has to be typed or kept.
+    Two reasons this is a redirect rather than an after_request hook. The page is
+    rendered before an after_request runs, so the first click on a reviewer link
+    would have rendered the read-only notice despite the key being valid — the exact
+    bad first impression the link was meant to avoid. And stripping the key from the
+    URL keeps it out of the address bar, out of the Referer of every later request,
+    and out of anything the reviewer copies. It is still a long-lived passcode rather
+    than a single-use token, and it will appear in this app's own access log; for a
+    gate whose worst case is resetting a demo board, that is a deliberate trade.
     """
-    if DEMO_PASSCODE and request.method == "GET":
-        supplied = request.args.get("key", "")
-        if supplied and hmac.compare_digest(supplied, DEMO_PASSCODE):
-            resp.set_cookie(_COOKIE, DEMO_PASSCODE, max_age=60 * 60 * 24 * 30,
-                            httponly=True, samesite="Lax",
-                            secure=request.headers.get("x-forwarded-proto") == "https")
+    if not DEMO_PASSCODE or request.method != "GET":
+        return None
+    supplied = request.args.get("key", "")
+    if not supplied or not hmac.compare_digest(supplied, DEMO_PASSCODE):
+        return None
+    rest = {k: v for k, v in request.args.items(multi=True) if k != "key"}
+    target = request.path + (("?" + urlencode(rest)) if rest else "")
+    resp = redirect(target, code=303)
+    resp.set_cookie(_COOKIE, DEMO_PASSCODE, max_age=60 * 60 * 24 * 30,
+                    httponly=True, samesite="Lax",
+                    secure=request.headers.get("x-forwarded-proto") == "https")
     return resp
 
 
