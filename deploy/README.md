@@ -2,8 +2,7 @@
 
 The app runs on Lambda behind a Function URL, using the
 [AWS Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter) so `app.py`
-stays an ordinary Flask/WSGI app — no Lambda-specific code, and the Vercel deployment
-keeps working from the same source.
+stays an ordinary Flask/WSGI app — no Lambda-specific code anywhere in it.
 
 ## Once
 
@@ -31,8 +30,8 @@ the Function URL and the status of `/healthz`, `/` and `/tutorial`.
 Bedrock access comes from the execution role (`mimir-lambda-role`), scoped to exactly
 `amazon.titan-embed-text-v2:0` and `amazon.nova-micro-v1:0` (plus the `us.` geo-profile
 variant, which `_converse` falls back to for models that require an inference profile).
-So unlike the Vercel deployment, there is no long-lived access key in the environment at
-all — the credential is issued per-invocation by STS.
+So there is no long-lived access key to store: the credential is a short-lived STS one that
+Lambda injects and rotates.
 
 ## Region
 

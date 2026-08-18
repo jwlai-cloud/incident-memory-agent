@@ -90,7 +90,7 @@ DAILY_PER_IP = int(os.environ.get("MODEL_CALLS_PER_DAY_PER_IP", "100"))
 MODEL_ENDPOINTS = {"/api/reset", "/api/decide", "/api/teach"}  # these call Bedrock
 
 # Optional passcode. Unset (the default) leaves the app fully open, so local dev and any
-# existing deployment keep working untouched; set DEMO_PASSCODE in the Vercel dashboard to
+# existing deployment keep working untouched; set DEMO_PASSCODE in the function's env to
 # turn it on. It gates only the endpoints that MUTATE the demo — reading is always free, so
 # the app still loads and tells its story to anyone.
 #

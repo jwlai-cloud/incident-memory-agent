@@ -78,12 +78,11 @@ AWS us-east-1**, and every embedding and every line of reasoning prose is an **A
 Bedrock** call in the same region — so no part of the agent's memory or inference path
 leaves AWS. `decide.py` is written to the Lambda handler signature (`handler(event,
 context)`). The console itself runs on **AWS Lambda** as a container image behind a
-Function URL, in the same region — via the AWS Lambda Web Adapter, so `app.py` needed no
-Lambda-specific code and a Vercel mirror still builds from the identical source. The
-function stores no long-lived credential: `bedrock:InvokeModel` is granted by its execution
-role and scoped to the two model ARNs the app calls, so what it uses is a short-lived STS
-credential that Lambda injects and rotates, rather than an IAM user key we placed there
-ourselves — which is what the Vercel deployment has to do.
+Function URL, in the same region — via the AWS Lambda Web Adapter, so `app.py` stayed an
+ordinary Flask/WSGI app with no Lambda-specific code in it. The function stores no
+long-lived credential: `bedrock:InvokeModel` is granted by its execution role and scoped to
+the two model ARNs the app calls, so what the process uses is a short-lived STS credential
+that Lambda injects and rotates, never an IAM user key placed there by hand.
 
 **AWS** does two jobs, and only two: **Bedrock Titan Text Embeddings v2**
 (`amazon.titan-embed-text-v2:0`, 512-d, normalized) turns signatures into vectors, and
@@ -228,4 +227,4 @@ is exactly what gets fed to the reasoning call on every future match.
 
 `cockroachdb` · `cockroachdb-vector-search` · `cockroachdb-cloud` · `amazon-bedrock` ·
 `amazon-titan` · `amazon-nova` · `aws-lambda` · `python` · `flask` · `psycopg3` ·
-`aws-lambda` · `amazon-ecr` · `vercel` · `sql` · `airflow` · `bigquery` · `dbt`
+`aws-lambda` · `amazon-ecr` · `sql` · `airflow` · `bigquery` · `dbt`

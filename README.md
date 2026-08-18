@@ -61,12 +61,12 @@ stays an ordinary Flask/WSGI app with no Lambda-specific branch.
 
 The Lambda stores **no long-lived credential**: Bedrock access comes from its execution
 role, scoped to exactly `amazon.titan-embed-text-v2:0` and `amazon.nova-micro-v1:0`. What
-the process actually uses is a short-lived STS credential that Lambda injects and rotates
-— unlike the Vercel mirror, which needs a stored IAM user key.
+the process actually uses is a short-lived STS credential that Lambda injects and rotates,
+never an IAM user key stored in the environment.
 
-A Vercel deployment is kept as a mirror off the same source — useful precisely because
-nothing in the code is host-specific. Co-location matters more than the host does:
-running in the cluster's region took 8 concurrent decisions from 13.5s to 1.5s.
+Nothing in the code is host-specific — the adapter means `app.py` is an ordinary WSGI app
+— and co-location matters more than the host does: running in the cluster's region took 8
+concurrent decisions from 13.5s to 1.5s.
 
 ## Why CockroachDB, and not Postgres with pgvector
 

@@ -115,7 +115,7 @@ overstating it would be the easy lie.
   request path — console, decision engine, embeddings, reasoning — is on AWS. The function
   stores no long-lived credential: `bedrock:InvokeModel` comes from its execution role,
   scoped to the two model ARNs the app actually calls, and the process uses short-lived STS
-  credentials Lambda rotates rather than a stored IAM user key. A Vercel mirror is kept off the same source.
+  credentials Lambda rotates rather than a stored IAM user key.
 - **CockroachDB** (Cloud Basic, or self-hosted single-node) — memory +
   vectors + ledger. Vector index requires
   `SET CLUSTER SETTING feature.vector_index.enabled = true`.
