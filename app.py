@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import sys
 import uuid
+import hmac
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
@@ -81,6 +82,25 @@ DAILY_GLOBAL = int(os.environ.get("MODEL_CALLS_PER_DAY", "500"))     # ~60 full 
 DAILY_PER_IP = int(os.environ.get("MODEL_CALLS_PER_DAY_PER_IP", "100"))
 MODEL_ENDPOINTS = {"/api/reset", "/api/decide", "/api/teach"}  # these call Bedrock
 
+# Optional passcode. Unset (the default) leaves the app fully open, so local dev and any
+# existing deployment keep working untouched; set DEMO_PASSCODE in the Vercel dashboard to
+# turn it on. It gates only the endpoints that MUTATE the demo — reading is always free, so
+# the app still loads and tells its story to anyone.
+#
+# The real risk here isn't Bedrock spend (the counters above cap that); it's that demo state
+# is global, so one stranger mid-run leaves the board looking broken for the next visitor.
+# Judges get a ?key=... link rather than a passcode to type: one click, cookie set, clean URL
+# from then on. A wall you have to type at is a wall some judge bounces off.
+DEMO_PASSCODE = os.environ.get("DEMO_PASSCODE", "").strip()
+MUTATING_ENDPOINTS = MODEL_ENDPOINTS | {"/api/respond", "/api/grant", "/api/ccloud"}
+_COOKIE = "mimir_key"
+
+
+def _has_key() -> bool:
+    """True when this request carries the passcode, by cookie or header."""
+    supplied = request.cookies.get(_COOKIE) or request.headers.get("X-Demo-Passcode", "")
+    return bool(supplied) and hmac.compare_digest(supplied, DEMO_PASSCODE)
+
 
 def _bump(cur, bucket: str) -> int:
     """Atomically increment today's counter and return the new value."""
@@ -96,6 +116,10 @@ def _bump(cur, bucket: str) -> int:
 def _guard():
     if request.method != "POST":
         return None
+    if DEMO_PASSCODE and request.path in MUTATING_ENDPOINTS and not _has_key():
+        return jsonify(ok=False, needs_key=True,
+                       error="This demo is running with a reviewer key. Open the link from "
+                             "the submission (it ends in ?key=...) and the controls unlock."), 401
     ip = (request.headers.get("x-forwarded-for", "") or request.remote_addr or "?").split(",")[0].strip()
 
     import time
@@ -164,10 +188,27 @@ def _json_errors(e):
     return jsonify(ok=False, error=f"{type(e).__name__} (ref {ref}) — see server logs"), 500
 
 
+@app.after_request
+def _accept_key(resp):
+    """Turn ?key=... into a cookie once, so the reviewer link is a click and not a form.
+
+    Set on any GET so the same link works for /, /demo and /tutorial. The clean URL takes
+    over from then on; the querystring never has to be typed or kept.
+    """
+    if DEMO_PASSCODE and request.method == "GET":
+        supplied = request.args.get("key", "")
+        if supplied and hmac.compare_digest(supplied, DEMO_PASSCODE):
+            resp.set_cookie(_COOKIE, DEMO_PASSCODE, max_age=60 * 60 * 24 * 30,
+                            httponly=True, samesite="Lax",
+                            secure=request.headers.get("x-forwarded-proto") == "https")
+    return resp
+
+
 @app.get("/")
 def dashboard():
     """The operator view — what an on-call engineer would actually keep open."""
-    return render_template("dashboard.html", teach=TEACH_DEFAULTS)
+    return render_template("dashboard.html", teach=TEACH_DEFAULTS,
+                           locked=bool(DEMO_PASSCODE) and not _has_key())
 
 
 @app.get("/demo")

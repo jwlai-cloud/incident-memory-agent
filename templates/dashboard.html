@@ -171,6 +171,8 @@ tr.auto_resolved .rowflag i{background:var(--green)}
 .railtoggle{background:none;border:1px solid var(--line);border-radius:8px;color:var(--ink-2);
   padding:7px 9px;font-family:var(--mono);font-size:11px;white-space:nowrap;margin-bottom:8px}
 .rail.open .railtoggle{text-align:left}
+.lockmsg{margin:10px 2px 0;font-size:11px;line-height:1.5;color:var(--ink-2)}
+.lockmsg code{font-size:10px;background:var(--surface-2);padding:1px 4px;border-radius:3px}
 .rail:not(.open) .rlabel{display:none}
 .rstep{display:flex;gap:9px;align-items:flex-start;background:none;border:none;border-radius:8px;padding:7px 8px;
   color:var(--ink);text-align:left;width:100%}
@@ -224,6 +226,10 @@ details.hood summary{padding:13px 17px;font-family:var(--mono);font-size:12px;le
 
 <nav class="rail" id="rail" aria-label="Demo controls">
   <button class="railtoggle" id="railtoggle">▶ <span class="rlabel">Run the demo</span></button>
+  {% if locked %}
+  <p class="lockmsg">Read-only. The demo controls need the reviewer link from the
+     submission — it ends in <code>?key=…</code>.</p>
+  {% endif %}
   <div id="steps"></div>
 </nav>
 

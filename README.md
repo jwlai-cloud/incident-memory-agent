@@ -104,6 +104,28 @@ python3 scripts/decide.py --all                    # memory on: known incidents 
 
 Dependencies: `psycopg[binary]` (v3), `boto3`.
 
+## Reviewer access
+
+The app is open by default. Setting `DEMO_PASSCODE` (a Vercel environment variable) gates
+the six endpoints that **mutate** demo state — reset, decide, teach, respond, grant,
+ccloud — while leaving everything readable. The dashboard, the incident records and the
+live-SQL panel stay public; only the controls that spend model calls or change the board
+require the key.
+
+Reviewers get a link, not a form: `https://<host>/?key=<passcode>` sets a cookie once and
+the clean URL works from then on. `/demo` and `/tutorial` accept the same link. Scripted
+access can send `X-Demo-Passcode` instead. Comparison is constant-time and the passcode is
+never rendered into the page.
+
+This exists because demo state is **global**: the daily Bedrock caps below already handle
+cost, but one stranger mid-run leaves the board looking broken for whoever opens it next.
+Per-session state is the real fix and is listed under *What's next*.
+
+```bash
+# generate one without it appearing in your shell history or any log
+python3 -c "import secrets; print(secrets.token_urlsafe(18))"   # paste into Vercel → Settings → Environment Variables
+```
+
 ## Status
 
 Live: **https://incident-memory-agent.vercel.app** — an operator dashboard backed by a
