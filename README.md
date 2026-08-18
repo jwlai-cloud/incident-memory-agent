@@ -49,21 +49,27 @@ sources.
   stored as `VECTOR(512)` and matched with the cosine `<=>` operator
   (`vector_cosine_ops`). This is the core memory, and it *is* on every incident's
   decision path.
-- **CockroachDB — MCP Server:** used **development-side**, not in the request path.
-  The cluster exposes a managed MCP endpoint that a coding assistant queries read-only
-  to inspect schema and memory while building. The runtime decision path
-  (`decide.py`) talks to CockroachDB directly over pgwire and does not go through MCP.
-  The session FAQ confirms dev-side usage satisfies the tool requirement; saying
-  otherwise would overstate it.
-- **CockroachDB — ccloud CLI + Agent Skills:** *only* for the CockroachDB-native
-  incident. A matched hot-range pattern proposes the real
-  [`analyzing-range-distribution`](https://github.com/cockroachlabs/cockroachdb-skills)
-  skill, executed via ccloud. These do not diagnose Airflow/BigQuery/dbt — the
-  split is deliberate and stated plainly.
+- **CockroachDB — MCP Server: not used.** The cluster exposes a managed MCP endpoint
+  and it would have been a convenient development-side way to inspect schema, but it
+  was never wired up. The runtime talks pgwire directly and always did. Listed here
+  because a reader comparing this repo against the tool list deserves to know which
+  boxes we are *not* ticking.
+- **CockroachDB — Agent Skills:** *only* for the CockroachDB-native incident. A matched
+  hot-range pattern carries `skill_ref='analyzing-range-distribution'` and proposes the
+  real [skill](https://github.com/cockroachlabs/cockroachdb-skills) from Cockroach Labs;
+  on approval its read-only diagnostic runs against the live cluster and returns real
+  range ids. This does not diagnose Airflow/BigQuery/dbt — the split is deliberate.
+- **CockroachDB — ccloud CLI: a code path we never executed.** `ccloud_wrapper.py` has a
+  working `--via ccloud` branch, but `ccloud auth login` is interactive-browser and
+  cannot run in a serverless function, so the deployed demo defaults to `via="sql"` and
+  runs the identical read-only SQL over pgwire. Not claimed as a tool used.
 - **AWS Bedrock:** Titan Text Embeddings v2 (`amazon.titan-embed-text-v2:0`, 512
   dims) for embeddings; the Converse API (default Nova Micro) for the reasoning
   prose on a match. The *decision* is deterministic; the LLM only explains.
-- **AWS Lambda:** hosts the decision step (`decide.py`'s `handler`).
+- **AWS Lambda:** a supported target, not a claim. `decide.py` exposes
+  `handler(event, context)` and deploys to Lambda unchanged, but the live demo runs it
+  as a Flask route on Vercel in us-east-1, co-located with the cluster. **Bedrock is the
+  only AWS service in the request path.**
 
 ## Repo layout
 

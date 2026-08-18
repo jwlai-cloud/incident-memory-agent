@@ -79,13 +79,20 @@ Three things make it more than recall:
 decision is already made. `decide.handler` is Lambda-shaped. The console runs on Vercel
 in **us-east-1**, co-located with the cluster.
 
-**The honest four-tool split**, stated plainly because overstating it would be the easy
-lie: *Vector Indexing* is on every incident's decision path. *MCP Server* is
-development-side — a coding assistant inspecting schema read-only; the runtime talks
-pgwire directly. *ccloud CLI + Agent Skills* apply only to the CockroachDB-native
-incident, where a matched hot-range pattern proposes the real
+**Two tools, claimed honestly.** *Distributed Vector Indexing* is on every incident's
+decision path. *Agent Skills* covers the CockroachDB-native incident, where a matched
+hot-range pattern proposes the real
 [`analyzing-range-distribution`](https://github.com/cockroachlabs/cockroachdb-skills)
-skill. ccloud has no business fixing an Airflow task, and we don't pretend it does.
+skill and its diagnostic returns live range ids.
+
+We are not claiming the other two, and the reason is worth stating. `ccloud_wrapper.py`
+has a working `--via ccloud` branch, but `ccloud auth login` is interactive-browser and
+cannot run in a serverless function, so the deployed demo runs the identical read-only
+SQL over pgwire instead — the tool is a code path we never executed. The managed MCP
+endpoint would have been a development-side convenience and we simply never wired it. It
+would have been easy to tick four boxes and let the architecture diagram imply the rest;
+a submission whose honesty rule is load-bearing in its own product design does not get to
+be selective about applying it.
 
 ## Challenges we ran into
 

@@ -163,8 +163,8 @@
     {
       "id": "ccloud",
       "type": "external",
-      "label": "ccloud + Agent Skill",
-      "sublabel": "analyzing-range-distribution",
+      "label": "Agent Skill diagnostic",
+      "sublabel": "analyzing-range-distribution \u00b7 read-only SQL",
       "tag": "beat 6 only",
       "pos": [
         1340,

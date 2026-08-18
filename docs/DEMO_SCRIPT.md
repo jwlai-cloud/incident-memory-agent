@@ -32,7 +32,7 @@ never natural order. Rehearse the full sequence before recording.
 | 1:40–2:05 | **Beat 6 — CockroachDB-native incident, all four tools:** `crdb_hot_range` fires on the memory cluster itself. Match → pattern's `remediation_channel='ccloud_skill'` → agent proposes the exact Agent Skill + ccloud command → you approve → live ccloud execution, JSON output in the UI. Voiceover: "the agent uses CockroachDB's own published expertise to keep its own memory healthy." |
 | 2:05–2:25 | **Trust ledger:** `trust_repeat` fires — the agent notes "5 unchanged approvals on this pattern" and asks for pre-authorization. You grant it on camera. Show the runbook view: the row now reads `autonomy_granted = true`. |
 | 2:25–2:45 | Open `runbook` (the self-written documentation view) + one MCP chat query: "which patterns earned autonomy, and what precedent does each cite?" |
-| 2:45–3:00 | Tools recap (honest four-tool split), repo link. |
+| 2:45–3:00 | Tools recap (honest tool split — two claimed), repo link. |
 
 ## Recording rules
 
