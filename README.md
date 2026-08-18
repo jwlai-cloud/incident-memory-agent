@@ -59,9 +59,10 @@ behind a Function URL, using the
 [AWS Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter) so `app.py`
 stays an ordinary Flask/WSGI app with no Lambda-specific branch.
 
-The Lambda holds **no AWS credentials**: Bedrock access comes from its execution role,
-scoped to exactly `amazon.titan-embed-text-v2:0` and `amazon.nova-micro-v1:0`, so the
-credential is issued per-invocation by STS rather than sitting in an environment variable.
+The Lambda stores **no long-lived credential**: Bedrock access comes from its execution
+role, scoped to exactly `amazon.titan-embed-text-v2:0` and `amazon.nova-micro-v1:0`. What
+the process actually uses is a short-lived STS credential that Lambda injects and rotates
+— unlike the Vercel mirror, which needs a stored IAM user key.
 
 A Vercel deployment is kept as a mirror off the same source — useful precisely because
 nothing in the code is host-specific. Co-location matters more than the host does:

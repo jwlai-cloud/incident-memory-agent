@@ -113,8 +113,9 @@ overstating it would be the easy lie.
   exposes `handler(event, context)` so it deploys to **AWS Lambda** unchanged, but the
   live demo runs on **AWS Lambda** (container image, arm64, Function URL), so the whole
   request path — console, decision engine, embeddings, reasoning — is on AWS. The function
-  carries no access key: `bedrock:InvokeModel` comes from its execution role, scoped to the
-  two model ARNs the app actually calls. A Vercel mirror is kept off the same source.
+  stores no long-lived credential: `bedrock:InvokeModel` comes from its execution role,
+  scoped to the two model ARNs the app actually calls, and the process uses short-lived STS
+  credentials Lambda rotates rather than a stored IAM user key. A Vercel mirror is kept off the same source.
 - **CockroachDB** (Cloud Basic, or self-hosted single-node) — memory +
   vectors + ledger. Vector index requires
   `SET CLUSTER SETTING feature.vector_index.enabled = true`.

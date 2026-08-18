@@ -80,9 +80,10 @@ leaves AWS. `decide.py` is written to the Lambda handler signature (`handler(eve
 context)`). The console itself runs on **AWS Lambda** as a container image behind a
 Function URL, in the same region — via the AWS Lambda Web Adapter, so `app.py` needed no
 Lambda-specific code and a Vercel mirror still builds from the identical source. The
-function holds no AWS access key at all: `bedrock:InvokeModel` is granted by its execution
-role and scoped to the two model ARNs the app calls, so the credential is minted per
-invocation by STS instead of living in an environment variable.
+function stores no long-lived credential: `bedrock:InvokeModel` is granted by its execution
+role and scoped to the two model ARNs the app calls, so what it uses is a short-lived STS
+credential that Lambda injects and rotates, rather than an IAM user key we placed there
+ourselves — which is what the Vercel deployment has to do.
 
 **AWS** does two jobs, and only two: **Bedrock Titan Text Embeddings v2**
 (`amazon.titan-embed-text-v2:0`, 512-d, normalized) turns signatures into vectors, and
