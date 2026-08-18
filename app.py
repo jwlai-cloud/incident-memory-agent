@@ -39,11 +39,17 @@ def _ca_path() -> str | None:
     """
     pem = os.environ.get("COCKROACH_CA_PEM", "").strip()
     if pem:
+        # Strip wrapping quotes before anything else: docker --env-file and several
+        # dashboards store the quotes as part of the value, and a PEM that starts with
+        # `"` fails in libpq as `bad end line`, which reads like a corrupt certificate
+        # rather than a quoting problem.
+        if len(pem) >= 2 and pem[0] == pem[-1] and pem[0] in "\"'":
+            pem = pem[1:-1]
+        pem = pem.replace("\\n", "\n").strip()   # tolerate literal \n instead of newlines
         tmp = "/tmp/cockroach-ca.crt"
         if not os.path.exists(tmp):
-            # tolerate a value pasted with literal \n instead of real newlines
             with open(tmp, "w") as fh:
-                fh.write(pem.replace("\\n", "\n") + "\n")
+                fh.write(pem + "\n")
         return tmp
     bundled = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certs", "cockroach-ca.crt")
     return bundled if os.path.exists(bundled) else None
@@ -84,7 +90,7 @@ DAILY_PER_IP = int(os.environ.get("MODEL_CALLS_PER_DAY_PER_IP", "100"))
 MODEL_ENDPOINTS = {"/api/reset", "/api/decide", "/api/teach"}  # these call Bedrock
 
 # Optional passcode. Unset (the default) leaves the app fully open, so local dev and any
-# existing deployment keep working untouched; set DEMO_PASSCODE in the Vercel dashboard to
+# existing deployment keep working untouched; set DEMO_PASSCODE in the function's env to
 # turn it on. It gates only the endpoints that MUTATE the demo — reading is always free, so
 # the app still loads and tells its story to anyone.
 #
@@ -232,6 +238,16 @@ def dashboard():
 def demo_console():
     """The original guided console. Kept as a verified fallback."""
     return render_template("index.html", teach=TEACH_DEFAULTS)
+
+
+@app.get("/healthz")
+def healthz():
+    """Liveness only — deliberately does not touch CockroachDB or Bedrock.
+
+    The Lambda Web Adapter polls this before routing the first request; making it
+    depend on the database would turn a slow cold connection into a failed deploy.
+    """
+    return {"ok": True}
 
 
 @app.get("/tutorial")

@@ -7,7 +7,7 @@ cover_image: ""
 ---
 
 > Built for the CockroachDB × AWS "Build with Agentic Memory" hackathon.
-> **[Live demo](https://incident-memory-agent.vercel.app)** · **[Interactive walk-through](https://incident-memory-agent.vercel.app/tutorial)** · **[Repo](https://github.com/jwlai-cloud/incident-memory-agent)**
+> **[Live demo](https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws)** · **[Interactive walk-through](https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws/tutorial)** · **[Repo](https://github.com/jwlai-cloud/incident-memory-agent)**
 >
 > Every number below is measured on a real CockroachDB Cloud cluster in AWS us-east-1, not estimated.
 
@@ -86,8 +86,8 @@ The CockroachDB-native incident is a write hotspot on the memory cluster itself.
 
 ## Try it
 
-The **[live dashboard](https://incident-memory-agent.vercel.app)** is the operator view: per-source health, a queue ordered by what needs a human, and a "show the record" control on every incident that opens its actual `monitored_signals` row — id, timestamp, and the raw upstream error as stored. The incident *stream* is generated for the demo; the vector search, the decisions and the ledger are live, and that record view is there so the claim is checkable rather than asserted.
+The **[live dashboard](https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws)** is the operator view: per-source health, a queue ordered by what needs a human, and a "show the record" control on every incident that opens its actual `monitored_signals` row — id, timestamp, and the raw upstream error as stored. The incident *stream* is generated for the demo; the vector search, the decisions and the ledger are live, and that record view is there so the claim is checkable rather than asserted.
 
-The **[interactive walk-through](https://incident-memory-agent.vercel.app/tutorial)** teaches the build: toggle the counterfactual, teach the schema-drift pattern and watch it pollinate, and earn autonomy in the trust-ledger simulator — every widget runs the real decision logic described above.
+The **[interactive walk-through](https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws/tutorial)** teaches the build: toggle the counterfactual, teach the schema-drift pattern and watch it pollinate, and earn autonomy in the trust-ledger simulator — every widget runs the real decision logic described above.
 
 *Consult what survived.*

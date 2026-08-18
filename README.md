@@ -13,7 +13,7 @@ the incident itself.
 
 *Interactive versions: [architecture](docs/diagrams/architecture.html) · [one incident end to end](docs/diagrams/sequence.html) — both have guided views, hover-to-trace and export.*
 
-> **▶ [Interactive engineering walk-through](https://incident-memory-agent.vercel.app/tutorial)** — a live tutorial where the widgets run the real decision logic: toggle memory on/off, teach a schema-drift pattern and watch it pollinate across systems, and earn autonomy in the trust-ledger simulator.
+> **▶ [Interactive engineering walk-through](https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws/tutorial)** — a live tutorial where the widgets run the real decision logic: toggle memory on/off, teach a schema-drift pattern and watch it pollinate across systems, and earn autonomy in the trust-ledger simulator.
 
 ## What makes it different
 
@@ -42,6 +42,31 @@ human's diagnosis into a new pattern that its cross-system cousins then match.
 See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full shape and
 **[docs/LEARNING.md](docs/LEARNING.md)** for the tech breakdown with primary
 sources.
+
+## Where this runs
+
+Stated plainly so nothing has to be inferred:
+
+| Piece | Where it runs |
+|---|---|
+| **Persistent memory layer** — vectors, trust ledger, audit log | **CockroachDB Cloud on AWS**, `us-east-1` |
+| **Embeddings + reasoning prose** — every decision | **Amazon Bedrock**, `us-east-1` (Titan Text v2, Nova Micro) |
+| **Decision engine** (`decide.py`) | `handler(event, context)` — **AWS Lambda-shaped**, deploys there unchanged |
+| **Web console** | **AWS Lambda** (container image, arm64) behind a Function URL, `us-east-1` |
+
+Every part of this runs on AWS, in one region. The console is a Lambda container image
+behind a Function URL, using the
+[AWS Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter) so `app.py`
+stays an ordinary Flask/WSGI app with no Lambda-specific branch.
+
+The Lambda stores **no long-lived credential**: Bedrock access comes from its execution
+role, scoped to exactly `amazon.titan-embed-text-v2:0` and `amazon.nova-micro-v1:0`. What
+the process actually uses is a short-lived STS credential that Lambda injects and rotates,
+never an IAM user key stored in the environment.
+
+Nothing in the code is host-specific — the adapter means `app.py` is an ordinary WSGI app
+— and co-location matters more than the host does: running in the cluster's region took 8
+concurrent decisions from 13.5s to 1.5s.
 
 ## Why CockroachDB, and not Postgres with pgvector
 
@@ -87,8 +112,9 @@ the two.
   prose on a match. The *decision* is deterministic; the LLM only explains.
 - **AWS Lambda:** a supported target, not a claim. `decide.py` exposes
   `handler(event, context)` and deploys to Lambda unchanged, but the live demo runs it
-  as a Flask route on Vercel in us-east-1, co-located with the cluster. **Bedrock is the
-  only AWS service in the request path.**
+  on **AWS Lambda** in us-east-1, co-located with the cluster. Bedrock and Lambda are both
+  in the request path; ECR holds the image and IAM issues the function's Bedrock
+  credential per invocation.
 
 ## Repo layout
 
@@ -131,7 +157,7 @@ Dependencies: `psycopg[binary]` (v3), `boto3`.
 
 ## Reviewer access
 
-The app is open by default. Setting `DEMO_PASSCODE` (a Vercel environment variable) gates
+The app is open by default. Setting `DEMO_PASSCODE` (a Lambda environment variable) gates
 the six endpoints that **mutate** demo state — reset, decide, teach, respond, grant,
 ccloud — while leaving everything readable. The dashboard, the incident records and the
 live-SQL panel stay public; only the controls that spend model calls or change the board
@@ -148,12 +174,13 @@ Per-session state is the real fix and is listed under *What's next*.
 
 ```bash
 # generate one without it appearing in your shell history or any log
-python3 -c "import secrets; print(secrets.token_urlsafe(18))"   # paste into Vercel → Settings → Environment Variables
+python3 -c "import secrets; print(secrets.token_urlsafe(18))"   # add to deploy/.env.deploy, then re-run deploy/deploy.sh
 ```
 
 ## Status
 
-Live: **https://incident-memory-agent.vercel.app** — an operator dashboard backed by a
+Live on **AWS Lambda**: **https://pi5qzv7wstff2tdkq73odywisq0jxnwt.lambda-url.us-east-1.on.aws**
+— an operator dashboard backed by a
 real CockroachDB Cloud cluster with real Bedrock embeddings and reasoning. The incident
 *stream* is generated for the demo; everything downstream of it — the vector search, the
 decisions, the trust ledger, the audit log — is live. Every incident exposes its

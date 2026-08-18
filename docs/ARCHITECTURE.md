@@ -9,7 +9,7 @@ CockroachDB itself). Its memory — every past incident pattern **and** the
 per-pattern record of how much the human trusts its judgment — lives in
 **CockroachDB**. Embeddings come from **AWS Bedrock** (Titan Text v2); the
 decision step is written Lambda-shaped (`handler(event, context)`) and runs today
-as a Flask route on Vercel in us-east-1, beside the cluster. A lesson taught once from one system
+as an AWS Lambda container image behind a Function URL in us-east-1, beside the cluster. A lesson taught once from one system
 is instantly matchable for a cousin incident in another, because one store holds
 both the vectors and the structured trust/audit ledger with no replication lag.
 
@@ -109,9 +109,15 @@ overstating it would be the easy lie.
 - **AWS Bedrock** — Titan Text Embeddings v2 (`amazon.titan-embed-text-v2:0`,
   512 dims, normalize=true) for embeddings; Converse API (default
   `amazon.nova-micro-v1:0`, env-configurable) for reasoning prose.
-- **AWS Bedrock is the only AWS service actually in the request path.** `decide.py`
-  exposes `handler(event, context)` so it deploys to **AWS Lambda** unchanged, but the
-  live demo runs it on Vercel — so Lambda is a supported target, not a claim.
+- **AWS Lambda** — hosts the console as a container image (arm64) behind a Function URL,
+  via the Lambda Web Adapter, so `app.py` carries no Lambda-specific code. `decide.py`
+  also exposes `handler(event, context)` and runs as a plain Lambda unchanged. The whole
+  request path — console, decision engine, embeddings, reasoning — is on AWS. The function
+  stores no long-lived credential: `bedrock:InvokeModel` comes from its execution role,
+  scoped to the two model ARNs the app actually calls, and the process uses short-lived STS
+  credentials Lambda rotates rather than a stored IAM user key.
+- **Amazon ECR** — holds the container image; its repository policy grants pull rights to
+  this one function ARN, not to every Lambda in the account.
 - **CockroachDB** (Cloud Basic, or self-hosted single-node) — memory +
   vectors + ledger. Vector index requires
   `SET CLUSTER SETTING feature.vector_index.enabled = true`.
@@ -142,8 +148,10 @@ Match threshold `MATCH_MAX_DISTANCE = 0.45`, calibrated — see ADR 0004.
 
 ## Deployment topology
 
-Demo: CockroachDB Cloud Basic (AWS us-east-1) · Flask console on localhost ·
-scripts as CLI tools. `decide.handler` is Lambda-shaped and deploys unchanged.
+Deployed: CockroachDB Cloud Basic (AWS us-east-1) · console on AWS Lambda (container
+image, arm64, Function URL, same region) · Bedrock in the same region · scripts also
+runnable as CLI tools against the same cluster. `decide.handler` is Lambda-shaped and
+deploys as its own function unchanged.
 
 Production shape: CockroachDB CDC on `monitored_signals` inserts → Lambda
 (`decide.handler`) → review queue, rather than the demo's explicit invoke.
