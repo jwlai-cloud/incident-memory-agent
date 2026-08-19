@@ -193,6 +193,18 @@ The part we're most pleased with is unglamorous: **the decision is a pure functi
 action, with a truth-table test that runs with no network. The LLM writes prose; rules
 decide. That is what makes the autonomy story credible rather than alarming.
 
+We want to be explicit that this is a choice, not a shortcut around being agentic. The
+system decides — on every incident it selects auto-resolve, propose, or escalate, and it
+decides whether it is allowed to act at all by consulting its own record of past human
+responses. What it does *not* do is let a language model pick that branch, because the
+branch governs a safety gate and a safety gate has to be predictable, testable and
+auditable. An agent that escalates for a reason you can read off a truth table is worth
+more on-call than one that chained tools convincingly. The organisers' own guidance on
+this challenge confirms deterministic coordination counts as agentic provided the system
+makes decisions; we would have built it this way regardless, but it is worth saying
+plainly rather than leaving a judge to wonder whether we simply couldn't get a ReAct loop
+working.
+
 ## What we learned
 
 **Offline tests prove the logic you thought to write down. Real infrastructure tells you
